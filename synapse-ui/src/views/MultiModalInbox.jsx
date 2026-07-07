@@ -3,7 +3,7 @@ import { UploadCloud, LayoutDashboard, Package, ShoppingBag, Truck, Box, CreditC
 import { useNavigate } from 'react-router-dom';
 import { useSynapse } from '../context/SynapseContext';
 import { useAuth } from '../context/AuthContext';
-import logoImg from '../assets/logo.png';
+import synapseLogo from '../assets/synapse-logo.png';
 import SupportPage from './inbox/SupportPage';
 import FinancePage from './inbox/FinancePage';
 import ReportPage from './inbox/ReportPage';
@@ -434,7 +434,7 @@ const MultiModalInbox = () => {
       <div className="w-64 h-full flex flex-col bg-white/5 backdrop-blur-2xl border-r border-white/10 shrink-0 shadow-2xl overflow-y-auto">
         <div className="p-6 pb-2 border-b border-transparent">
           <div className="cursor-pointer mb-8 flex items-center justify-start animate-fade-in bg-transparent" onClick={() => navigate('/')}>
-            <div className="w-40 h-12 bg-contain bg-no-repeat bg-left mix-blend-screen contrast-[1.5] brightness-[1.2]" style={{ backgroundImage: `url(${logoImg})` }} />
+            <div className="w-40 h-12 bg-contain bg-no-repeat bg-left mix-blend-screen contrast-[1.5] brightness-[1.2]" style={{ backgroundImage: `url(${synapseLogo})` }} />
           </div>
           <div className="flex flex-col gap-1">
             {SIDEBAR_ITEMS.map((item, idx) => (
