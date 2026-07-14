@@ -67,6 +67,7 @@ class APIKeysPayload(BaseModel):
     keys: dict[str, str]
 
 
+
 # ─────────────────────────── DAG Parser ───────────────────────────
 
 def topological_sort(nodes: list[NodeData], edges: list[EdgeData]) -> list[str]:
@@ -504,6 +505,43 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok", "engine": "synapse-workflow-engine", "version": "2.0.0"}
+
+
+# ─────────────────────────── n8n API ────────────────────────────
+
+@app.get("/api/n8n/stats")
+def get_n8n_stats():
+    """Reads directly from n8n SQLite database to get real workflow and execution stats."""
+    try:
+        import sqlite3
+        db_path = os.path.expanduser('~/.n8n/database.sqlite')
+        if not os.path.exists(db_path):
+            return {"workflows": [], "totalActions": 0}
+        
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        # Get workflows
+        c.execute('SELECT id, name, active, createdAt, updatedAt FROM workflow_entity')
+        rows = c.fetchall()
+        
+        # Get total executions (actions)
+        c.execute('SELECT COUNT(*) FROM execution_entity')
+        total_actions = c.fetchone()[0]
+        
+        workflows = []
+        for r in rows:
+            workflows.append({
+                "id": r[0],
+                "name": r[1],
+                "active": bool(r[2]),
+                "createdAt": r[3],
+                "updatedAt": r[4]
+            })
+            
+        return {"workflows": workflows, "totalActions": total_actions}
+    except Exception as e:
+        return {"error": str(e), "workflows": [], "totalActions": 0}
 
 
 @app.post("/api/save-keys")

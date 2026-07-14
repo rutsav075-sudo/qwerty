@@ -23,7 +23,25 @@ const NODE_CATALOG = {
     color: 'text-blue-400',
     items: [
       { name: 'Pump telemetry', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-400', iconName: 'Activity' },
-      { name: 'Webhook Listener', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-400', iconName: 'Zap' },
+      { name: 'Webhook Listener', iconBg: 'bg-blue-500/20', iconColor: 'text-blue-400', iconName: 'Webhook' },
+    ],
+  },
+  'Logic & Routing': {
+    letter: 'LR',
+    color: 'text-indigo-400',
+    items: [
+      { name: 'If/Else Router', iconBg: 'bg-indigo-500/20', iconColor: 'text-indigo-400', iconName: 'GitBranch' },
+      { name: 'Switch Node', iconBg: 'bg-indigo-500/20', iconColor: 'text-indigo-400', iconName: 'GitCommit' },
+      { name: 'Merge', iconBg: 'bg-indigo-500/20', iconColor: 'text-indigo-400', iconName: 'GitMerge' },
+      { name: 'Wait / Delay', iconBg: 'bg-indigo-500/20', iconColor: 'text-indigo-400', iconName: 'Clock' },
+    ],
+  },
+  'Loops': {
+    letter: 'LP',
+    color: 'text-yellow-400',
+    items: [
+      { name: 'Array Iterator', iconBg: 'bg-yellow-500/20', iconColor: 'text-yellow-400', iconName: 'Repeat' },
+      { name: 'Batch Processor', iconBg: 'bg-yellow-500/20', iconColor: 'text-yellow-400', iconName: 'Layers' },
     ],
   },
   'Context Providers': {
@@ -31,6 +49,15 @@ const NODE_CATALOG = {
     color: 'text-orange-400',
     items: [
       { name: 'Get Prompt Details', iconBg: 'bg-orange-500/20', iconColor: 'text-orange-400', iconName: 'Database' },
+    ],
+  },
+  'Agent Capabilities': {
+    letter: 'AC',
+    color: 'text-cyan-400',
+    items: [
+      { name: 'Shared Memory Database', iconBg: 'bg-cyan-500/20', iconColor: 'text-cyan-400', iconName: 'Database' },
+      { name: 'Tool Executor', iconBg: 'bg-cyan-500/20', iconColor: 'text-cyan-400', iconName: 'Wrench' },
+      { name: 'Sub-Agent Delegation', iconBg: 'bg-cyan-500/20', iconColor: 'text-cyan-400', iconName: 'Users' },
     ],
   },
   Transformations: {
@@ -41,6 +68,15 @@ const NODE_CATALOG = {
       { name: 'Add URL', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-400', iconName: 'Link2' },
       { name: 'Join Prompt Details', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-400', iconName: 'Link2' },
       { name: 'Filter Out Existing', iconBg: 'bg-pink-500/20', iconColor: 'text-pink-400', iconName: 'Filter' },
+    ],
+  },
+  'Integrations': {
+    letter: 'I',
+    color: 'text-rose-400',
+    items: [
+      { name: 'Slack Webhook', iconBg: 'bg-rose-500/20', iconColor: 'text-rose-400', iconName: 'MessageSquare' },
+      { name: 'GitHub Action', iconBg: 'bg-rose-500/20', iconColor: 'text-rose-400', iconName: 'Github' },
+      { name: 'Notion DB', iconBg: 'bg-rose-500/20', iconColor: 'text-rose-400', iconName: 'FileText' },
     ],
   },
   'AI & Machine Learning': {

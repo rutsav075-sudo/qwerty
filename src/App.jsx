@@ -10,8 +10,8 @@ import RegisterPage from './views/RegisterPage';
 import OrchestrationEditor from './views/OrchestrationEditor';
 import MultiModalInbox from './views/MultiModalInbox';
 import CommandCenter from './views/CommandCenter';
-import SettingsPage from './views/SettingsPage'; // We will create this next
-
+import SettingsPage from './views/SettingsPage'; 
+import NeuralCorePage from './views/NeuralCorePage';
 // A wrapper for authenticated routes
 function RequireAuth({ children }) {
   const { session, loading } = useAuth();
@@ -41,10 +41,11 @@ function AppContent() {
       
       <Route path="/app" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<Navigate to="/app/orchestration" replace />} />
-        <Route path="orchestration" element={<OrchestrationEditor />} />
+        <Route path="orchestration" element={null} /> {/* Handled persistently in Layout */}
         <Route path="inbox" element={<MultiModalInbox />} />
         <Route path="command-center" element={<CommandCenter />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="ai-builder" element={<NeuralCorePage />} />
       </Route>
       
       {/* Fallback */}

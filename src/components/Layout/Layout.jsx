@@ -1,9 +1,11 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Mail, Settings, HeadphonesIcon } from 'lucide-react';
+import { LayoutDashboard, Package, Mail, Settings, HeadphonesIcon, Sparkles } from 'lucide-react';
 import { useSynapse } from '../../context/SynapseContext';
 import { useAuth } from '../../context/AuthContext';
 import synapseLogo from '../../assets/synapse-logo.png';
+
+import OrchestrationEditor from '../../views/OrchestrationEditor';
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -18,8 +20,11 @@ const Layout = () => {
     { id: 'orchestration', icon: LayoutDashboard, path: '/app/orchestration', label: 'Orchestration' },
     { id: 'command-center', icon: Package, path: '/app/command-center', label: 'Command Center' },
     { id: 'inbox', icon: Mail, path: '/app/inbox', badge: pendingCount > 0 ? pendingCount : null, label: 'Inbox' },
+    { id: 'ai-builder', icon: Sparkles, path: '/app/ai-builder', label: 'AI Builder' },
     { id: 'settings', icon: Settings, path: '/app/settings', label: 'Settings' },
   ];
+
+  const isOrchestrationActive = location.pathname === '/app/orchestration';
 
   return (
     <div className="relative h-screen w-full flex overflow-hidden bg-slate-950/20 backdrop-blur-[2px] text-text-primary font-sans bg-fixed bg-center bg-cover">
@@ -101,8 +106,11 @@ const Layout = () => {
       <main className="flex-1 h-full overflow-y-auto relative bg-transparent text-white/90">
         <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         <div className="h-full w-full relative z-10">
-          <div className="w-full h-full bg-[#030712]/40 backdrop-blur-xl border border-emerald-500/10 shadow-2xl overflow-hidden">
+          <div className="w-full h-full bg-[#030712]/40 backdrop-blur-xl border border-emerald-500/10 shadow-2xl overflow-hidden relative">
             <Outlet />
+            <div className={`absolute inset-0 z-50 ${isOrchestrationActive ? 'block' : 'hidden'}`}>
+              <OrchestrationEditor />
+            </div>
           </div>
         </div>
       </main>

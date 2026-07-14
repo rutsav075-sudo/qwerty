@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node patch-n8n.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@react-three/fiber": "^9.6.1",
     "@supabase/supabase-js": "^2.110.0",
     "@xyflow/react": "^12.11.1",
     "clsx": "^2.1.1",
@@ -17,9 +20,12 @@
     "firebase": "^12.15.0",
     "framer-motion": "^12.42.2",
     "lucide-react": "^1.23.0",
+    "n8n": "^2.29.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "tailwind-merge": "^3.6.0",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

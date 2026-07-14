@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, Download, Plus, Map, LayoutDashboard, Edit, CheckCircle2, Activity, AlertTriangle, Filter, Trash2, X, Edit2, Check } from 'lucide-react';
 import { useSynapse } from '../context/SynapseContext';
 import Modal from '../components/Modal/Modal';
@@ -58,7 +58,7 @@ const LeaseForm = ({ lease, onSave, onCancel }) => {
 };
 
 const CommandCenter = () => {
-  const { leases, addLease, updateLease, deleteLease, exportLeasesCSV, permissions, togglePermission, agentStatuses } = useSynapse();
+  const { leases, addLease, updateLease, deleteLease, exportLeasesCSV, permissions, togglePermission } = useSynapse();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('past');
@@ -66,6 +66,21 @@ const CommandCenter = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingLease, setEditingLease] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  
+  // Real n8n agent states
+  const [n8nWorkflows, setN8nWorkflows] = useState([]);
+  const [n8nTotalActions, setN8nTotalActions] = useState(0);
+
+  // Fetch real workflows from the engine
+  useEffect(() => {
+    fetch('http://localhost:8000/api/n8n/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data.workflows) setN8nWorkflows(data.workflows);
+        if (data.totalActions !== undefined) setN8nTotalActions(data.totalActions);
+      })
+      .catch(err => console.error('Failed to fetch n8n stats:', err));
+  }, []);
 
   // Contacts states
   const [contacts, setContacts] = useState([
@@ -95,9 +110,9 @@ const CommandCenter = () => {
     draft: leases.filter(l => l.status === 'draft').length,
   }), [leases]);
 
-  // Stats from agent engine
-  const totalAgentActions = Object.values(agentStatuses).reduce((sum, a) => sum + a.actions, 0);
-  const activeAgents = Object.values(agentStatuses).filter(a => a.status === 'processing').length;
+  // Dynamic stats based on n8n
+  const totalAgentActions = n8nTotalActions;
+  const activeAgents = n8nWorkflows.filter(w => w.active).length;
 
   const handleSaveNew = useCallback((form) => {
     addLease(form);
@@ -234,7 +249,7 @@ const CommandCenter = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="p-3 bg-black/20 rounded-xl border border-white/5 text-center">
-                      <div className="text-2xl font-bold text-white">{Object.keys(agentStatuses).length}</div>
+                      <div className="text-2xl font-bold text-white">{n8nWorkflows.length}</div>
                       <div className="text-[10px] text-text-tertiary font-medium mt-1">Total Agents</div>
                     </div>
                     <div className="p-3 bg-black/20 rounded-xl border border-white/5 text-center">
@@ -250,18 +265,20 @@ const CommandCenter = () => {
                       <div className="text-[10px] text-text-tertiary font-medium mt-1">Total Leases</div>
                     </div>
                   </div>
-                  <div className="mt-auto space-y-2">
-                    {Object.values(agentStatuses).map(agent => (
+                  <div className="mt-auto space-y-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                    {n8nWorkflows.length > 0 ? n8nWorkflows.map(agent => (
                       <div key={agent.id} className="flex items-center gap-2 text-xs">
-                        <span>{agent.icon}</span>
-                        <span className="text-text-secondary flex-grow">{agent.name}</span>
+                        <span>🤖</span>
+                        <span className="text-text-secondary flex-grow truncate">{agent.name}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                          agent.status === 'processing' ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-text-tertiary'
+                          agent.active ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-text-tertiary'
                         }`}>
-                          {agent.status}
+                          {agent.active ? 'active' : 'idle'}
                         </span>
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-xs text-text-tertiary text-center py-2">No agents created yet</div>
+                    )}
                   </div>
                 </div>
 
