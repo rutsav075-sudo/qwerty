@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { motion } from 'framer-motion';
-import AsciiGlobe from './AsciiGlobe';
+import AnimatedSphere from './AnimatedSphere';
 
 export default function HeroSection() {
   const { session } = useAuth();
@@ -49,7 +49,7 @@ export default function HeroSection() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.2, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="relative flex items-center justify-center w-full max-w-[750px] h-[550px] mx-auto mt-8"
+          className="relative flex items-center justify-center w-full max-w-[750px] h-[350px] md:h-[550px] mx-auto mt-8"
         >
           {/* Viewfinder brackets - tightly framing the 3D object */}
           <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-text-tertiary/30"></div>
@@ -57,7 +57,7 @@ export default function HeroSection() {
           <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-text-tertiary/30"></div>
           <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-text-tertiary/30"></div>
           
-          <AsciiGlobe />
+          <AnimatedSphere />
         </motion.div>
       </div>
     </section>

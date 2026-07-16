@@ -14,7 +14,8 @@ import { useSynapse } from '../context/SynapseContext';
 import { 
   Play, X, Eye, Activity, Clock, DollarSign, 
   CheckCircle2, AlertTriangle, Zap, ChevronDown, 
-  ChevronUp, RotateCcw, Cpu
+  ChevronUp, RotateCcw, Cpu, Send, Sparkles,
+  Radio, Bot
 } from 'lucide-react';
 import styles from './Observatory.module.css';
 
@@ -61,6 +62,10 @@ export default function Observatory() {
     demoSteps,
     activeHandoffs,
     runScenario,
+    runLiveScenario,
+    runCustomPrompt,
+    liveMode,
+    liveTelemetry,
     approveRequest,
     rejectRequest,
   } = useSynapse();
@@ -69,7 +74,11 @@ export default function Observatory() {
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [activeEdges, setActiveEdges] = useState(new Set());
   const [viewMode, setViewMode] = useState('live'); // 'live' or 'flow'
+  const [engineMode, setEngineMode] = useState('ai'); // 'ai' (real) or 'sim' (simulation)
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   const logEndRef = useRef(null);
+  const customInputRef = useRef(null);
 
   // Track which edges are active based on agent statuses + handoffs
   useEffect(() => {
@@ -106,6 +115,30 @@ export default function Observatory() {
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activityLog]);
+
+  // Focus custom input when shown
+  useEffect(() => {
+    if (showCustomInput && customInputRef.current) {
+      customInputRef.current.focus();
+    }
+  }, [showCustomInput]);
+
+  // Handle scenario button click — routes to real AI or simulation
+  const handleRunScenario = useCallback((scenarioId) => {
+    if (engineMode === 'ai') {
+      runLiveScenario(scenarioId);
+    } else {
+      runScenario(scenarioId);
+    }
+  }, [engineMode, runLiveScenario, runScenario]);
+
+  // Handle custom prompt submission
+  const handleCustomPrompt = useCallback(() => {
+    if (!customPrompt.trim()) return;
+    runCustomPrompt(customPrompt.trim());
+    setCustomPrompt('');
+    setShowCustomInput(false);
+  }, [customPrompt, runCustomPrompt]);
 
   // Build React Flow nodes
   const handleNodeClick = useCallback((agentId) => {
@@ -197,6 +230,9 @@ export default function Observatory() {
     return pendingApprovals.filter(a => a.status === 'pending');
   }, [pendingApprovals]);
 
+  // Check if API key is set
+  const hasApiKey = !!localStorage.getItem('geminiApiKey');
+
   return (
     <div className="w-full h-full relative overflow-hidden flex flex-col bg-transparent">
 
@@ -211,7 +247,7 @@ export default function Observatory() {
         {Object.entries(scenarios).map(([id, scenario]) => (
           <button
             key={id}
-            onClick={() => runScenario(id)}
+            onClick={() => handleRunScenario(id)}
             disabled={!!scenarioRunning}
             className={`${styles.scenarioCard} ${
               scenarioRunning === id ? styles.scenarioCardActive : ''
@@ -220,15 +256,54 @@ export default function Observatory() {
             <span className="text-base">{scenario.icon}</span>
             <span>{scenario.title}</span>
             {scenarioRunning === id && (
-              <div className="w-3 h-3 border-2 border-cyan-500 border-t-transparent animate-spin" />
+              <div className="w-3 h-3 border-2 border-cyan-500 border-t-transparent animate-spin rounded-full" />
             )}
             {!scenarioRunning && <Play size={12} className="opacity-40" />}
           </button>
         ))}
 
-        {/* Agent count badge & View Toggle */}
+        {/* ── Custom Prompt Button (NEW) ── */}
+        <button
+          onClick={() => setShowCustomInput(!showCustomInput)}
+          disabled={!!scenarioRunning || engineMode !== 'ai'}
+          className={`${styles.scenarioCard} ${showCustomInput ? styles.scenarioCardActive : ''} ${engineMode !== 'ai' ? 'opacity-40 cursor-not-allowed' : ''}`}
+          title={engineMode !== 'ai' ? 'Switch to LIVE AI mode to use custom prompts' : 'Ask agents anything'}
+        >
+          <Sparkles size={14} className="text-amber-400" />
+          <span>Custom</span>
+        </button>
+
+        {/* ── Engine Mode Toggle + Status ── */}
         <div className="ml-auto flex items-center gap-3">
-          <div className="flex bg-black/5 dark:bg-white/5 rounded-lg p-1 mr-2 border border-black/10 dark:border-white/10">
+
+          {/* Engine Mode Toggle: AI vs Simulation */}
+          <div className="flex bg-black/5 dark:bg-white/5 rounded-lg p-1 border border-black/10 dark:border-white/10">
+            <button
+              onClick={() => setEngineMode('ai')}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                engineMode === 'ai' 
+                  ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' 
+                  : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              <Sparkles size={11} />
+              LIVE AI
+            </button>
+            <button
+              onClick={() => setEngineMode('sim')}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                engineMode === 'sim' 
+                  ? 'bg-cyan-500 text-white shadow-sm' 
+                  : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              <Bot size={11} />
+              Demo
+            </button>
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex bg-black/5 dark:bg-white/5 rounded-lg p-1 border border-black/10 dark:border-white/10">
             <button
               onClick={() => setViewMode('live')}
               className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
@@ -247,9 +322,40 @@ export default function Observatory() {
                   : 'text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white'
               }`}
             >
-              Simulated Flow
+              Agent Flow
             </button>
           </div>
+
+          {/* Live AI Status Indicator */}
+          {engineMode === 'ai' && (
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border ${
+              liveMode 
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : hasApiKey
+                  ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-500/70'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${
+                liveMode 
+                  ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]' 
+                  : hasApiKey
+                    ? 'bg-emerald-500'
+                    : 'bg-red-400'
+              }`} />
+              {liveMode ? 'AI RUNNING' : hasApiKey ? 'AI READY' : 'NO API KEY'}
+            </div>
+          )}
+
+          {/* Live Telemetry Badge */}
+          {liveTelemetry && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-purple-500/10 border border-purple-500/20 rounded-md text-[10px] font-mono text-purple-400">
+              <span>{liveTelemetry.totalTokens} tok</span>
+              <span className="opacity-40">|</span>
+              <span>${liveTelemetry.totalCost?.toFixed(4)}</span>
+              <span className="opacity-40">|</span>
+              <span>{(liveTelemetry.totalLatency / 1000).toFixed(1)}s</span>
+            </div>
+          )}
 
           {agentApprovals.length > 0 && (
             <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[11px] font-mono font-medium">
@@ -263,6 +369,50 @@ export default function Observatory() {
           </div>
         </div>
       </div>
+
+      {/* ── Custom Prompt Input Bar (NEW) ── */}
+      {showCustomInput && engineMode === 'ai' && (
+        <div className="px-4 py-3 bg-gradient-to-r from-amber-500/5 via-purple-500/5 to-cyan-500/5 border-b border-amber-500/20 dark:border-amber-500/10 flex items-center gap-3 backdrop-blur-xl">
+          <Sparkles size={16} className="text-amber-400 shrink-0" />
+          <input
+            ref={customInputRef}
+            type="text"
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleCustomPrompt();
+              }
+            }}
+            placeholder="Ask agents anything... e.g. 'A major client cancelled a $50K order. What should we do?'"
+            disabled={!!scenarioRunning}
+            className="flex-1 bg-white/60 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-lg px-4 py-2 text-sm text-black dark:text-white outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all placeholder:text-black/30 dark:placeholder:text-white/30 font-medium"
+          />
+          <button
+            onClick={handleCustomPrompt}
+            disabled={!customPrompt.trim() || !!scenarioRunning}
+            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-bold hover:shadow-lg hover:shadow-amber-500/25 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Send size={14} />
+            Run
+          </button>
+          <button
+            onClick={() => setShowCustomInput(false)}
+            className="p-2 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* ── No API Key Warning ── */}
+      {engineMode === 'ai' && !hasApiKey && (
+        <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 text-red-400 text-xs font-medium">
+          <AlertTriangle size={14} />
+          <span>No Gemini API key configured. Go to <strong>Settings → API Configuration</strong> to add your key.</span>
+        </div>
+      )}
 
       {/* ── Main Content Area ── */}
       {viewMode === 'live' ? (
