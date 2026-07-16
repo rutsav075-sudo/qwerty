@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Search, Download, Plus, Map, LayoutDashboard, Edit, CheckCircle2, Activity, AlertTriangle, Filter, Trash2, X, Edit2, Check } from 'lucide-react';
 import { useSynapse } from '../context/SynapseContext';
-import Modal from '../components/Modal/Modal';
-
+import Modal from '../components/common/Modal';
+import { useAgentStats } from '../hooks/useAgentStats';
 // ── Add/Edit Lease Form ──
 const LeaseForm = ({ lease, onSave, onCancel }) => {
   const [form, setForm] = useState(lease || {
@@ -58,7 +58,7 @@ const LeaseForm = ({ lease, onSave, onCancel }) => {
 };
 
 const CommandCenter = () => {
-  const { leases, addLease, updateLease, deleteLease, exportLeasesCSV, permissions, togglePermission } = useSynapse();
+  const { leases, addLease, updateLease, deleteLease, exportLeasesCSV, permissions, togglePermission, agentStatuses } = useSynapse();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('past');
@@ -67,19 +67,6 @@ const CommandCenter = () => {
   const [editingLease, setEditingLease] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   
-  const [n8nWorkflowCount, setN8nWorkflowCount] = useState(0);
-  const [n8nTotalActions, setN8nTotalActions] = useState(0);
-
-  useEffect(() => {
-    fetch('http://localhost:8000/api/n8n/stats')
-      .then(res => res.json())
-      .then(data => {
-        if (data.workflows !== undefined) setN8nWorkflowCount(Number(data.workflows) || 0);
-        if (data.totalActions !== undefined) setN8nTotalActions(Number(data.totalActions) || 0);
-      })
-      .catch(err => console.error('Failed to fetch n8n stats:', err));
-  }, []);
-
   const [contacts, setContacts] = useState([
     { id: '1', name: "Aman Verma", email: "aman.v@synapse.io", role: "Lead Multi-Branch Auditor", type: "auditor" },
     { id: '2', name: "Sarah Jenkins", email: "s.jenkins@synapse.io", role: "Legal Counsel (Leasing)", type: "counsel" },
@@ -105,8 +92,7 @@ const CommandCenter = () => {
     draft: leases.filter(l => l.status === 'draft').length,
   }), [leases]);
 
-  const totalAgentActions = n8nTotalActions;
-  const activeAgents = n8nWorkflowCount;
+  const { totalAgentActions, activeAgents } = useAgentStats(agentStatuses);
 
   const handleSaveNew = useCallback((form) => {
     addLease(form);

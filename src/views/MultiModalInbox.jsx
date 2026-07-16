@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { UploadCloud, LayoutDashboard, Package, ShoppingBag, Truck, Box, CreditCard, Users, Settings, X, CheckCircle2, AlertCircle, Bot, GitBranch, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSynapse } from '../context/SynapseContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import SupportPage from './inbox/SupportPage';
 import FinancePage from './inbox/FinancePage';
 import ReportPage from './inbox/ReportPage';
@@ -438,10 +438,23 @@ const MultiModalInbox = () => {
   };
 
   return (
-    <div className="flex h-full w-full bg-transparent font-sans text-foreground dark:text-white transition-colors duration-500">
+    <div className="flex flex-col md:flex-row h-full w-full bg-transparent font-sans text-foreground dark:text-white transition-colors duration-500">
       
-      {/* Secondary Sidebar */}
-      <div className="w-64 h-full flex flex-col bg-white/70 dark:bg-slate-900/40 backdrop-blur-md border-r border-sot-border dark:border-white/10 shrink-0 z-10 relative transition-colors duration-500">
+      {/* Mobile Tabs */}
+      <div className="md:hidden w-full overflow-x-auto no-scrollbar border-b border-sot-border dark:border-white/10 bg-white/70 dark:bg-slate-900/40 backdrop-blur-md p-2 flex gap-2 shrink-0">
+        {SIDEBAR_ITEMS.map((item, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleSidebarClick(item.label)}
+            className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeSidebar === item.label && activeSidebar !== 'Dashboard' ? 'bg-sot-gray-light dark:bg-black text-sot-blue' : 'text-text-secondary dark:text-white/70 hover:bg-sot-gray-light dark:bg-black'}`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Secondary Sidebar (Desktop only) */}
+      <div className="hidden md:flex w-64 h-full flex-col bg-white/70 dark:bg-slate-900/40 backdrop-blur-md border-r border-sot-border dark:border-white/10 shrink-0 z-10 relative transition-colors duration-500">
         <div className="p-6 pb-4 border-b border-sot-border dark:border-white/10">
           <div className="cursor-pointer mb-6 flex items-center justify-start" onClick={() => navigate('/')}>
             <div className="font-display font-semibold text-lg text-foreground dark:text-white">Synapse OS</div>

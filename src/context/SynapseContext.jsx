@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { io as socketIO } from 'socket.io-client';
 import AgentSimulator from '../engine/AgentSimulator';
 import { supabase } from '../lib/supabase';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 const SynapseContext = createContext(null);
 
@@ -128,6 +129,11 @@ export function SynapseProvider({ children }) {
   const [scenarioRunning, setScenarioRunning] = useState(null);
   const [demoSteps, setDemoSteps] = useState({});
 
+  // ── LIVE AI State (NEW) ──
+  const [liveMode, setLiveMode] = useState(false);          // true when real AI is running
+  const [liveTelemetry, setLiveTelemetry] = useState(null);  // real-time token/cost data
+  const [liveError, setLiveError] = useState(null);
+
   // ── Data State ──
   const [leases, setLeases] = useState([]);
   const [products, setProducts] = useState([]);
@@ -187,6 +193,9 @@ export function SynapseProvider({ children }) {
     }
   }, [leases, products, permissions, dbConnected]);
 
+  // ── Agent handoff tracking ──
+  const [activeHandoffs, setActiveHandoffs] = useState([]);
+
   // ── Subscribe to simulator events ──
   useEffect(() => {
     simulator.start();
@@ -197,6 +206,13 @@ export function SynapseProvider({ children }) {
       }),
       simulator.on('agent-status', () => {
         setAgentStatuses(simulator.getAgentStatuses());
+      }),
+      simulator.on('agent-handoff', (handoff) => {
+        setActiveHandoffs(prev => [...prev.slice(-19), handoff]);
+        // Auto-clear handoff highlight after 3 seconds
+        setTimeout(() => {
+          setActiveHandoffs(prev => prev.filter(h => h !== handoff));
+        }, 3000);
       }),
       simulator.on('approval-added', (approval) => {
         setPendingApprovals(prev => [...prev, approval]);
@@ -227,6 +243,118 @@ export function SynapseProvider({ children }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ═══════════════════════════════════════════════════════════
+  // LIVE AI — Socket.IO connection for real-time AI events
+  // Connects to backend:4000 and receives live: prefixed events
+  // as the AI orchestrator processes real Gemini API calls
+  // ═══════════════════════════════════════════════════════════
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    const socket = socketIO('http://localhost:4000', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('[Socket.IO] Connected to Synapse backend');
+    });
+
+    // ── Live AI Activity Logs ──
+    socket.on('live:activity', (entry) => {
+      setActivityLog(prev => [...prev.slice(-99), {
+        ...entry,
+        timestamp: new Date(entry.timestamp),
+      }]);
+    });
+
+    // ── Live Agent Status Changes ──
+    socket.on('live:agent-status', ({ agentId, status }) => {
+      if (simulator.agents[agentId]) {
+        simulator.agents[agentId].status = status;
+        setAgentStatuses(simulator.getAgentStatuses());
+      }
+    });
+
+    // ── Live Agent Handoffs ──
+    socket.on('live:agent-handoff', (handoff) => {
+      setActiveHandoffs(prev => [...prev.slice(-19), handoff]);
+      setTimeout(() => {
+        setActiveHandoffs(prev => prev.filter(h => h !== handoff));
+      }, 3000);
+    });
+
+    // ── Live Demo Steps (Timeline) ──
+    socket.on('live:demo-step', ({ step, status, output }) => {
+      setDemoSteps(prev => ({
+        ...prev,
+        [step]: { status, output },
+      }));
+    });
+
+    // ── Live Scenario Start ──
+    socket.on('live:scenario-start', (data) => {
+      setScenarioRunning(data.scenarioId);
+      setDemoSteps({});
+      setLiveMode(true);
+
+      // If this is a custom scenario, inject dynamic steps into simulator
+      if (data.isCustom && data.steps) {
+        simulator.scenarios['custom'] = {
+          id: 'custom',
+          title: data.title || 'Custom Scenario',
+          icon: data.icon || '🧠',
+          description: data.description || '',
+          steps: data.steps,
+        };
+      }
+    });
+
+    // ── Live Scenario Complete ──
+    socket.on('live:scenario-complete', (data) => {
+      setScenarioRunning(null);
+      setLiveMode(false);
+      setLiveTelemetry({
+        totalTokens: data.totalTokens,
+        totalCost: data.totalCost,
+        totalLatency: data.totalLatency,
+        agentsUsed: data.agentsUsed,
+      });
+    });
+
+    // ── Live Telemetry Updates ──
+    socket.on('live:telemetry', (data) => {
+      setLiveTelemetry(prev => ({
+        ...prev,
+        ...data,
+      }));
+    });
+
+    // ── Live Approval Requests ──
+    socket.on('live:approval-added', (approval) => {
+      setPendingApprovals(prev => [...prev, approval]);
+    });
+
+    // ── Live Errors ──
+    socket.on('live:error', ({ error }) => {
+      setLiveError(error);
+      setScenarioRunning(null);
+      setLiveMode(false);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[Socket.IO] Disconnected from backend');
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Toast System ──
   const addToast = useCallback((type, title, message) => {
     const id = Date.now() + Math.random();
@@ -240,7 +368,7 @@ export function SynapseProvider({ children }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // ── Scenario Actions ──
+  // ── Scenario Actions (OLD — simulation) ──
   const runScenario = useCallback(async (scenarioId) => {
     if (scenarioRunning) {
       addToast('warning', 'Busy', 'A scenario is already running');
@@ -249,6 +377,113 @@ export function SynapseProvider({ children }) {
     addToast('info', 'Demo Started', `Running: ${simulator.scenarios[scenarioId]?.title}`);
     await simulator.runScenario(scenarioId);
   }, [scenarioRunning, addToast, simulator]);
+
+  // ═══════════════════════════════════════════════════════════
+  // LIVE AI Scenario Runner (NEW — real Gemini calls)
+  // ═══════════════════════════════════════════════════════════
+  const runLiveScenario = useCallback(async (scenarioId) => {
+    const apiKey = localStorage.getItem('geminiApiKey');
+    // If not in localStorage, we will rely on backend's .env
+
+    if (scenarioRunning) {
+      addToast('warning', 'Busy', 'A scenario is already running');
+      return;
+    }
+
+    setLiveMode(true);
+    setLiveError(null);
+    setScenarioRunning(scenarioId);
+    setDemoSteps({});
+
+    addToast('info', '🟢 LIVE AI Started', `Running real AI scenario: ${scenarioId}`);
+
+    try {
+      // Start listening for Socket.IO events first
+      // Since we may not have socket.io-client, use fetch to trigger the scenario
+      // and rely on the Socket.IO events emitted by the backend being received
+      // through a dedicated EventSource or WebSocket connection
+      
+      // For simplicity and reliability: We use fetch + poll Socket.IO events
+      const response = await fetch('http://localhost:4000/api/ai/scenario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenarioId, apiKey }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Scenario failed');
+      }
+
+      setLiveTelemetry({
+        totalTokens: data.totalTokens,
+        totalCost: data.totalCost,
+        totalLatency: data.totalLatency,
+        agentsUsed: data.agentsUsed,
+      });
+
+      addToast('success', '🟢 LIVE AI Complete', 
+        `Real AI scenario done. ${data.totalTokens} tokens, $${data.totalCost.toFixed(4)} cost, ${(data.totalLatency / 1000).toFixed(1)}s`
+      );
+    } catch (error) {
+      console.error('[Live AI] Error:', error);
+      setLiveError(error.message);
+      addToast('error', 'AI Error', error.message);
+    } finally {
+      setScenarioRunning(null);
+      setLiveMode(false);
+    }
+  }, [scenarioRunning, addToast]);
+
+  // ── Run Custom Prompt (NEW — the killer feature) ──
+  const runCustomPrompt = useCallback(async (prompt) => {
+    const apiKey = localStorage.getItem('geminiApiKey');
+    // If not in localStorage, we will rely on backend's .env
+
+    if (scenarioRunning) {
+      addToast('warning', 'Busy', 'A scenario is already running');
+      return;
+    }
+
+    setLiveMode(true);
+    setLiveError(null);
+    setScenarioRunning('custom');
+    setDemoSteps({});
+
+    addToast('info', '🧠 Custom AI Scenario', 'Agents are analyzing your prompt...');
+
+    try {
+      const response = await fetch('http://localhost:4000/api/ai/custom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, apiKey }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Custom scenario failed');
+      }
+
+      setLiveTelemetry({
+        totalTokens: data.totalTokens,
+        totalCost: data.totalCost,
+        totalLatency: data.totalLatency,
+      });
+
+      addToast('success', '🧠 Custom AI Complete', 
+        `${data.totalTokens} tokens, $${data.totalCost.toFixed(4)} cost`
+      );
+    } catch (error) {
+      console.error('[Custom AI] Error:', error);
+      setLiveError(error.message);
+      addToast('error', 'AI Error', error.message);
+    } finally {
+      setScenarioRunning(null);
+      setLiveMode(false);
+    }
+  }, [scenarioRunning, addToast]);
 
   // ── Approval Actions ──
   const approveRequest = useCallback((id) => {
@@ -355,11 +590,19 @@ export function SynapseProvider({ children }) {
     pendingApprovals,
     scenarioRunning,
     demoSteps,
+    activeHandoffs,
 
-    // Actions
+    // Actions (original simulation)
     runScenario,
     approveRequest,
     rejectRequest,
+
+    // LIVE AI Actions (NEW)
+    runLiveScenario,
+    runCustomPrompt,
+    liveMode,
+    liveTelemetry,
+    liveError,
 
     // Leases
     leases,

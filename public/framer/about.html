@@ -3,6 +3,22 @@
 <!-- Published Jun 17, 2026, 2:43 PM UTC -->
 <html lang="en" data-redirect-timezone="1" dir="ltr">
 <head>
+	<style>
+	/* SCROLL BLANK FIX: Force all Framer appear-animation elements visible.
+	   Prevents blank sections when scrolling fast inside an iframe. */
+	[data-framer-appear-id] {
+		opacity: 1 !important;
+		transform: none !important;
+		filter: none !important;
+		visibility: visible !important;
+	}
+	/* Ensure iframe internal scroll works */
+	html, body {
+		overflow-y: auto !important;
+		overflow-x: hidden !important;
+		height: auto !important;
+	}
+	</style>
 	<base href="">
 	<script src="js/rerouter.js"></script>
 	<meta charset="utf-8">
@@ -376,6 +392,7 @@ div:has(> a[href*="privacy-policy"]), div:has(> a[href*="terms-and-conditions"])
 	<link rel="modulepreload" fetchpriority="low" href="js/react.cxf1bsd4.mjs"><link rel="modulepreload" fetchpriority="low" href="js/rolldown-runtime.bb3s47xo.mjs"><link rel="modulepreload" fetchpriority="low" href="js/motion.cyypg6ji.mjs"><link rel="modulepreload" fetchpriority="low" href="js/framer.bwihn3hv.mjs"><link rel="modulepreload" fetchpriority="low" href="js/shared-lib.1ws5oqsz.mjs"><link rel="modulepreload" fetchpriority="low" href="js/lbghxxocz.bfpk69-g.mjs"><link rel="modulepreload" fetchpriority="low" href="js/rhzugfsms.gfil4ybx.mjs"><link rel="modulepreload" fetchpriority="low" href="js/mvgbyzo38.704c3ozn.mjs"><link rel="modulepreload" fetchpriority="low" href="js/sugexsipr.npbeckpj.mjs"><link rel="modulepreload" fetchpriority="low" href="js/r8upvcmwx.ddmwoyz1.mjs"><link rel="modulepreload" fetchpriority="low" href="js/dxsx8ivcg.co-syb-5.mjs"><link rel="modulepreload" fetchpriority="low" href="js/bo2hzobjr.sp003mx1.mjs"><link rel="modulepreload" fetchpriority="low" href="js/interactiveascii_prod._xj_fxke.mjs"><link rel="modulepreload" fetchpriority="low" href="js/4mxscpudporpqng0gltwywdocorypdmzoitwk0kkwcu.bnykm2x0.mjs"><link rel="modulepreload" fetchpriority="low" href="js/ln16zqbjh.vkc4gpyj.mjs"><link rel="modulepreload" fetchpriority="low" href="js/uzrrtwbaf.dvtlfrx2.mjs"><link rel="modulepreload" fetchpriority="low" href="js/gfnbt0evi.ilyefj14.mjs"><link rel="modulepreload" fetchpriority="low" href="js/wtjylbluj.aun0dd9c.mjs"><link rel="modulepreload" fetchpriority="low" href="js/tg4v3xdvb.bugpnhsa.mjs"><link rel="modulepreload" fetchpriority="low" href="js/uwhdr3sgd.b1ts-mnk.mjs"><link rel="modulepreload" fetchpriority="low" href="js/kc_vruptk.di8urzxd.mjs"><link rel="modulepreload" fetchpriority="low" href="js/zp59s7qxk.xmvw8qxp.mjs"><link rel="modulepreload" fetchpriority="low" href="js/xv81tuxg1.bs98odij.mjs"><script type="module" async data-framer-bundle="main" fetchpriority="low" src="js/script_main.b3gst1gu.mjs"></script><div id="svg-templates" style="position: absolute; overflow: hidden; bottom: 0; left: 0; width: 0; height: 0; z-index: 0; contain: strict" aria-hidden="true">
 </div>
 	<!-- Start of bodyEnd -->
+	<script src="js/scroll-fix.js"></script>
     
     
     

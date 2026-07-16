@@ -11,7 +11,24 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-console.log("Firebase Config Loaded:", firebaseConfig);
+let app;
+let auth;
+let isFirebaseMocked = false;
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+try {
+  if (!firebaseConfig.apiKey) {
+    throw new Error("VITE_FIREBASE_API_KEY is not defined");
+  }
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  console.log("Firebase Config Loaded and Initialized Successfully");
+} catch (error) {
+  console.warn("Firebase failed to initialize. Falling back to Mocked Auth mode.", error.message);
+  isFirebaseMocked = true;
+  app = null;
+  auth = {
+    currentUser: null
+  };
+}
+
+export { app, auth, isFirebaseMocked };

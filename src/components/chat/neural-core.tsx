@@ -6,7 +6,7 @@ import { CommandDock } from "./command-dock"
 import { LatentSidebar, Conversation } from "./latent-sidebar"
 import { Layers, Moon, Sun } from "lucide-react"
 
-import { useAuth } from "../../context/AuthContext"
+import { useAuth } from "../../hooks/useAuth"
 import { supabase } from "../../lib/supabase"
 import { useNavigate } from "react-router-dom"
 import { generateWorkflow } from "../../lib/gemini.js"

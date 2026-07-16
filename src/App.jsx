@@ -1,27 +1,29 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SynapseProvider } from './context/SynapseContext';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Layout from './components/Layout/Layout';
-import Toast from './components/Toast/Toast';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './hooks/useAuth';
+import Layout from './components/layout/Layout';
+import Toast from './components/common/Toast';
 import LoginPage from './views/LoginPage';
 import RegisterPage from './views/RegisterPage';
-import OrchestrationEditor from './views/OrchestrationEditor';
+import Observatory from './views/Observatory';
 import MultiModalInbox from './views/MultiModalInbox';
 import CommandCenter from './views/CommandCenter';
 import SettingsPage from './views/SettingsPage'; 
 import NeuralCorePage from './views/NeuralCorePage';
 import './framer-styles.css';
 
-// Framer Pages
-import FramerIndex from './views/FramerPages/FramerIndex';
-import AboutPage from './views/FramerPages/AboutPage';
-import AcceptableUsePage from './views/FramerPages/AcceptableUsePage';
-import CareersPage from './views/FramerPages/CareersPage';
-import CaseStudiesPage from './views/FramerPages/CaseStudiesPage';
-import ContactPage from './views/FramerPages/ContactPage';
-import PrivacyPolicyPage from './views/FramerPages/PrivacyPolicyPage';
-import TermsAndConditionsPage from './views/FramerPages/TermsAndConditionsPage';
+// Native Landing Pages
+import LandingPage from './views/Landing/LandingPage';
+import PricingPage from './views/Landing/PricingPage';
+import AboutPage from './views/Landing/pages/AboutPage';
+import AcceptableUsePage from './views/Landing/pages/AcceptableUsePage';
+import CareersPage from './views/Landing/pages/CareersPage';
+import CaseStudiesPage from './views/Landing/pages/CaseStudiesPage';
+import ContactPage from './views/Landing/pages/ContactPage';
+import PrivacyPolicyPage from './views/Landing/pages/PrivacyPolicyPage';
+import TermsAndConditionsPage from './views/Landing/pages/TermsAndConditionsPage';
 // A wrapper for authenticated routes
 function RequireAuth({ children }) {
   const { session, loading } = useAuth();
@@ -45,7 +47,8 @@ function RequireAuth({ children }) {
 function AppContent() {
   return (
     <Routes>
-      <Route path="/" element={<FramerIndex />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/acceptable-use" element={<AcceptableUsePage />} />
       <Route path="/careers" element={<CareersPage />} />
@@ -58,8 +61,8 @@ function AppContent() {
       <Route path="/register" element={<RegisterPage />} />
       
       <Route path="/app" element={<RequireAuth><Layout /></RequireAuth>}>
-        <Route index element={<Navigate to="/app/orchestration" replace />} />
-        <Route path="orchestration" element={null} /> {/* Handled persistently in Layout */}
+        <Route index element={<Navigate to="/app/observatory" replace />} />
+        <Route path="observatory" element={<Observatory />} />
         <Route path="inbox" element={<MultiModalInbox />} />
         <Route path="command-center" element={<CommandCenter />} />
         <Route path="settings" element={<SettingsPage />} />

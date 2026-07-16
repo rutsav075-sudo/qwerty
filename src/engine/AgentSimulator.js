@@ -57,6 +57,7 @@ class AgentSimulator {
     this.messageLog = [];
     this.pendingApprovals = [];
     this.isRunning = false;
+    this.totalCost = 0;
 
     this.inventory = {
       'Widget A': { qty: 450, reorder: 200, price: 24.99 },
@@ -181,8 +182,14 @@ class AgentSimulator {
       this.messageLog = this.messageLog.slice(-100);
     }
     this.agents[agentId].actions++;
+    this.totalCost += 0.023; // simulated cost per action
     this.emit('activity', entry);
     return entry;
+  }
+
+  // Emit an edge event when agents hand off work
+  handoff(fromAgent, toAgent, reason) {
+    this.emit('agent-handoff', { from: fromAgent, to: toAgent, reason, timestamp: new Date() });
   }
 
   setAgentStatus(agentId, status) {
@@ -251,6 +258,7 @@ class AgentSimulator {
 
     this.setAgentStatus('inventory', 'idle');
     this.log('inventory', 'Stock levels updated. Handing off to Procurement Agent.', 'success');
+    this.handoff('inventory', 'procurement', 'Low stock items detected');
     this.emit('demo-step', { step: 1, status: 'completed', output: this._formatStockLevels(lowStock) });
     await this._delay(600);
 
@@ -270,6 +278,7 @@ class AgentSimulator {
 
     this.log('procurement', `Draft PO #PO-${Date.now().toString().slice(-6)} created: ${lowStock.length} items, total $${orderTotal.toFixed(2)}`, 'success');
     this.setAgentStatus('procurement', 'idle');
+    this.handoff('procurement', 'finance', 'PO requires financial validation');
     this.emit('demo-step', { step: 2, status: 'completed', output: this._formatPO(lowStock, bestSupplier, orderTotal) });
     await this._delay(600);
 
@@ -334,6 +343,7 @@ class AgentSimulator {
 
     this.log('inventory', allAvailable ? '✅ All items in stock' : '⚠️ Some items have limited availability', allAvailable ? 'success' : 'warning');
     this.setAgentStatus('inventory', 'idle');
+    this.handoff('inventory', 'pricing', 'Order pricing required');
     this.emit('demo-step', { step: 1, status: 'completed', output: this._formatAvailability(availability) });
     await this._delay(600);
 
@@ -349,6 +359,8 @@ class AgentSimulator {
 
     this.log('pricing', `Order total: $${orderTotal.toFixed(2)} (standard pricing applied)`, 'success');
     this.setAgentStatus('pricing', 'idle');
+    this.handoff('pricing', 'finance', 'Order revenue recording');
+    this.handoff('pricing', 'logistics', 'Fulfillment scheduling');
     this.emit('demo-step', { step: 2, status: 'completed', output: `Order Total: $${orderTotal.toFixed(2)}\nMargin: 32.4%\nDiscount Applied: None (standard customer)` });
     await this._delay(600);
 
@@ -396,6 +408,8 @@ class AgentSimulator {
     this.log('inventory', '🔒 Reserved: 50x Widget A, 100x Component X for Tier-1 accounts', 'success');
     this.setAgentStatus('inventory', 'idle');
     this.setAgentStatus('pricing', 'idle');
+    this.handoff('logistics', 'pricing', 'Supply disruption pricing activation');
+    this.handoff('pricing', 'inventory', 'Safety stock reservation');
     this.emit('demo-step', { step: 1, status: 'completed', output: 'Dynamic Pricing Activated:\n  Widget A:     $24.99 → $27.99 (+12%)\n  Component X:  $12.50 → $13.50 (+8%)\n  Module Y:     $89.00 → $89.00 (no change)\n\nProjected Revenue Impact: +$4,280/day\nSafety Stock Reserved: Tier-1 priority' });
     await this._delay(600);
 
@@ -406,6 +420,8 @@ class AgentSimulator {
 
     this.log('procurement', '✅ Alt route found: Mumbai→Jaipur→Delhi via QuickShip Inc. (+$1,200, saves 2 days)', 'success');
     this.setAgentStatus('procurement', 'idle');
+    this.handoff('procurement', 'logistics', 'Alternative route for rescheduling');
+    this.handoff('procurement', 'finance', 'Disruption cost calculation');
     this.emit('demo-step', { step: 2, status: 'completed', output: 'Alternative Routing:\n  Original: Mumbai → Delhi (NH-48) | 3 days\n  Rerouted: Mumbai → Jaipur → Delhi | 5 days\n  Express:  Via QuickShip Inc. | 3 days (+$1,200)\n\nRecommendation: Express route for SHP-2847 (high-value)\n                Standard reroute for SHP-2851, SHP-2856' });
     await this._delay(600);
 
