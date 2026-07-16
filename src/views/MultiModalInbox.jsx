@@ -3,12 +3,7 @@ import { UploadCloud, LayoutDashboard, Package, ShoppingBag, Truck, Box, CreditC
 import { useNavigate } from 'react-router-dom';
 import { useSynapse } from '../context/SynapseContext';
 import { useAuth } from '../hooks/useAuth';
-import SupportPage from './inbox/SupportPage';
-import FinancePage from './inbox/FinancePage';
-import ReportPage from './inbox/ReportPage';
-import MyStorePage from './inbox/MyStorePage';
-import SellerToolsPage from './inbox/SellerToolsPage';
-import ReferralsPage from './inbox/ReferralsPage';
+
 
 // ── Sidebar Item ──
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
@@ -348,12 +343,6 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard' },
   { icon: Bot, label: 'Agent Swarms' },
   { icon: GitBranch, label: 'Workflow Canvas' },
-  { icon: UploadCloud, label: 'Data Ingestion' },
-  { icon: Network, label: 'Multi-Branch Control' },
-  { icon: LayoutDashboard, label: 'Report' },
-  { icon: Users, label: 'Support' },
-  { icon: CreditCard, label: 'Finance' },
-  { icon: Users, label: 'Referrals' },
   { icon: Settings, label: 'Settings' },
 ];
 
@@ -517,41 +506,7 @@ const MultiModalInbox = () => {
           </div>
         )}
 
-        {activeSidebar === 'Support' && (
-          <div className="p-8 h-full max-w-4xl mx-auto w-full relative z-10">
-            <SupportPage />
-          </div>
-        )}
 
-        {activeSidebar === 'Finance' && (
-          <div className="p-8 h-full relative z-10">
-            <FinancePage />
-          </div>
-        )}
-
-        {activeSidebar === 'Report' && (
-          <div className="p-8 h-full relative z-10">
-            <ReportPage />
-          </div>
-        )}
-
-        {activeSidebar === 'Multi-Branch Control' && (
-          <div className="p-8 h-full relative z-10">
-            <MyStorePage />
-          </div>
-        )}
-
-        {activeSidebar === 'Data Ingestion' && (
-          <div className="p-8 h-full relative z-10">
-            <SellerToolsPage />
-          </div>
-        )}
-
-        {activeSidebar === 'Referrals' && (
-          <div className="p-8 h-full relative z-10">
-            <ReferralsPage />
-          </div>
-        )}
 
         {/* Form area */}
         {activeSidebar === 'Dashboard' && (
