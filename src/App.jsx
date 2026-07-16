@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { SynapseProvider } from './context/SynapseContext';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
-import Layout from './components/layout/Layout';
+import Layout from './components/Layout/Layout';
 import Toast from './components/common/Toast';
 import LoginPage from './views/LoginPage';
 import RegisterPage from './views/RegisterPage';
