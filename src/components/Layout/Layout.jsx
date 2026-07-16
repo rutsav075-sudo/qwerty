@@ -59,7 +59,6 @@ const Layout = () => {
   const navItems = [
     { id: 'observatory', icon: Eye, path: '/app/observatory', label: 'Observatory' },
     { id: 'command-center', icon: Package, path: '/app/command-center', label: 'Command Center' },
-    { id: 'inbox', icon: Mail, path: '/app/inbox', badge: pendingCount > 0 ? pendingCount : null, label: 'Inbox' },
     { id: 'ai-builder', icon: Sparkles, path: '/app/ai-builder', label: 'AI Builder' },
     { id: 'settings', icon: Settings, path: '/app/settings', label: 'Settings' },
   ];

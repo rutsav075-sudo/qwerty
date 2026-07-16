@@ -8,7 +8,7 @@ import Toast from './components/common/Toast';
 import LoginPage from './views/LoginPage';
 import RegisterPage from './views/RegisterPage';
 import Observatory from './views/Observatory';
-import MultiModalInbox from './views/MultiModalInbox';
+
 import CommandCenter from './views/CommandCenter';
 import SettingsPage from './views/SettingsPage'; 
 import NeuralCorePage from './views/NeuralCorePage';
@@ -63,7 +63,7 @@ function AppContent() {
       <Route path="/app" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<Navigate to="/app/observatory" replace />} />
         <Route path="observatory" element={<Observatory />} />
-        <Route path="inbox" element={<MultiModalInbox />} />
+
         <Route path="command-center" element={<CommandCenter />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="ai-builder" element={<NeuralCorePage />} />
