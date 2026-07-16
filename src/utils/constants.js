@@ -6,7 +6,7 @@ export const API_BASE_URL = IS_PROD
   : 'http://localhost:3000';
 
 export const OBSERVATORY_URL = IS_PROD
-  ? 'https://synapse-os-server-production.up.railway.app'
+  ? '' // No standalone client deployed, use empty string to trigger fallback
   : 'http://localhost:5175';
 
 export const ENGINE_URL = IS_PROD
@@ -14,5 +14,5 @@ export const ENGINE_URL = IS_PROD
   : 'http://localhost:8000';
 
 export const SOCKET_URL = IS_PROD
-  ? 'https://synapse-os-server-production.up.railway.app'
+  ? '' // Empty string so fetches hit Vercel relative /api/ai paths
   : 'http://localhost:4000';
