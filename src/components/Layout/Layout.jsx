@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Mail, Settings, HeadphonesIcon, Sparkles, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, Mail, Settings, HeadphonesIcon, Sparkles, Menu, X, Eye } from 'lucide-react';
 import { useSynapse } from '../../context/SynapseContext';
-import { useAuth } from '../../context/AuthContext';
-import OrchestrationEditor from '../../views/OrchestrationEditor';
+import { useAuth } from '../../hooks/useAuth';
+
 
 const ASCIIBackground = () => {
   const [grid, setGrid] = useState('');
@@ -57,14 +57,14 @@ const Layout = () => {
   const onlineCount = Object.values(agentStatuses).filter(a => a.status !== 'offline').length;
 
   const navItems = [
-    { id: 'orchestration', icon: LayoutDashboard, path: '/app/orchestration', label: 'Orchestration' },
+    { id: 'observatory', icon: Eye, path: '/app/observatory', label: 'Observatory' },
     { id: 'command-center', icon: Package, path: '/app/command-center', label: 'Command Center' },
     { id: 'inbox', icon: Mail, path: '/app/inbox', badge: pendingCount > 0 ? pendingCount : null, label: 'Inbox' },
     { id: 'ai-builder', icon: Sparkles, path: '/app/ai-builder', label: 'AI Builder' },
     { id: 'settings', icon: Settings, path: '/app/settings', label: 'Settings' },
   ];
 
-  const isOrchestrationActive = location.pathname === '/app/orchestration';
+  const isObservatoryActive = location.pathname === '/app/observatory';
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   return (
@@ -165,12 +165,7 @@ const Layout = () => {
 
       {/* Main Content Area - Transparent so ASCII shows through */}
       <main className="flex-1 h-full overflow-y-auto relative pt-16 md:pt-0 z-10 bg-transparent">
-        <div className="w-full h-full relative">
-          <Outlet />
-          <div className={`absolute inset-0 z-50 bg-transparent ${isOrchestrationActive ? 'block' : 'hidden'}`}>
-            <OrchestrationEditor />
-          </div>
-        </div>
+        <Outlet />
       </main>
 
     </div>

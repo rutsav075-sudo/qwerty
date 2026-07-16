@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { UploadCloud, LayoutDashboard, Package, ShoppingBag, Truck, Box, CreditCard, Users, Settings, X, CheckCircle2, AlertCircle, Bot, GitBranch, Network } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSynapse } from '../context/SynapseContext';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import SupportPage from './inbox/SupportPage';
 import FinancePage from './inbox/FinancePage';
 import ReportPage from './inbox/ReportPage';

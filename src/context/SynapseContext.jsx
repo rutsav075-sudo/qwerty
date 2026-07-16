@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import AgentSimulator from '../engine/AgentSimulator';
 import { supabase } from '../lib/supabase';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 const SynapseContext = createContext(null);
 
@@ -187,6 +187,9 @@ export function SynapseProvider({ children }) {
     }
   }, [leases, products, permissions, dbConnected]);
 
+  // ── Agent handoff tracking ──
+  const [activeHandoffs, setActiveHandoffs] = useState([]);
+
   // ── Subscribe to simulator events ──
   useEffect(() => {
     simulator.start();
@@ -197,6 +200,13 @@ export function SynapseProvider({ children }) {
       }),
       simulator.on('agent-status', () => {
         setAgentStatuses(simulator.getAgentStatuses());
+      }),
+      simulator.on('agent-handoff', (handoff) => {
+        setActiveHandoffs(prev => [...prev.slice(-19), handoff]);
+        // Auto-clear handoff highlight after 3 seconds
+        setTimeout(() => {
+          setActiveHandoffs(prev => prev.filter(h => h !== handoff));
+        }, 3000);
       }),
       simulator.on('approval-added', (approval) => {
         setPendingApprovals(prev => [...prev, approval]);
@@ -355,6 +365,7 @@ export function SynapseProvider({ children }) {
     pendingApprovals,
     scenarioRunning,
     demoSteps,
+    activeHandoffs,
 
     // Actions
     runScenario,

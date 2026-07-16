@@ -7,6 +7,25 @@
 	<script src="js/rerouter.js"></script>
 	<meta charset="utf-8">
 	<style>
+	/* CRITICAL: Ensure internal iframe scroll works so Framer animations fire */
+	html, body {
+		overflow-y: auto !important;
+		overflow-x: hidden !important;
+		height: auto !important;
+	}
+
+	/* ── SCROLL BLANK FIX ──────────────────────────────────────────────────────
+	   Framer sets opacity:0 on appear-animation elements initially.
+	   When scrolling fast inside an iframe the animations never complete,
+	   leaving sections blank. Force all such elements to be fully visible.
+	   ────────────────────────────────────────────────────────────────────── */
+	[data-framer-appear-id] {
+		opacity: 1 !important;
+		transform: none !important;
+		filter: none !important;
+		visibility: visible !important;
+	}
+
 		/* Hide Case Studies and Contact globally */
 		nav a[href="./case-studies"], nav a[href="./contact"] {
 			display: none !important;
@@ -22,6 +41,7 @@
     pointer-events: none !important;
 }
 </style>
+
 
 	<meta name="viewport" content="width=device-width">
 	<meta name="generator" content="Framer e0b3c1c">
@@ -446,11 +466,18 @@ nav:not(#custom-static-nav) { display: none !important; }
 <svg viewBox="0 0 1 49.5" overflow="visible" id="svg-2031834466_202"><path d="M 0 0 L 0 49.5" fill="transparent" stroke="rgb(0, 0, 0)"/></svg>
 </div>
 	<!-- Start of bodyEnd -->
+	<script src="js/scroll-fix.js"></script>
     
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // Auth state is passed via sessionStorage by the React app before redirecting here
         const urlParams = new URLSearchParams(window.location.search);
-        const isAuth = urlParams.get('auth') === 'true';
+        const isAuthFromUrl = urlParams.get('auth') === 'true';
+        let isAuth = isAuthFromUrl;
+        try {
+            const stored = sessionStorage.getItem('synapse_auth');
+            if (stored) isAuth = true;
+        } catch(e) {}
 
         const observer = new MutationObserver(() => {
             const links = document.querySelectorAll('a');
@@ -477,14 +504,16 @@ nav:not(#custom-static-nav) { display: none !important; }
                 e.preventDefault();
                 e.stopPropagation();
                 if (isAuth) {
-                    window.parent.postMessage({ type: 'NAVIGATE', path: '/app/orchestration' }, '*');
+                    // Navigate directly to React app
+                    window.location.href = '/app/orchestration';
                 } else {
-                    window.parent.postMessage({ type: 'NAVIGATE', path: '/login' }, '*');
+                    window.location.href = '/login';
                 }
             }
         }, true);
     });
     </script>
+
     
     
     <!-- End of bodyEnd -->

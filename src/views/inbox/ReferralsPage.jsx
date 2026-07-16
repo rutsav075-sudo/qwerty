@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Users, Copy, Gift, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { useSynapse } from '../../context/SynapseContext';
 
 const ReferralsPage = () => {
