@@ -10,7 +10,6 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { API_BASE_URL, OBSERVATORY_URL } from '../utils/constants';
 import { useSynapse } from '../context/SynapseContext';
 import { 
   Play, X, Eye, Activity, Clock, DollarSign, 
@@ -418,22 +417,11 @@ export default function Observatory() {
       {/* ── Main Content Area ── */}
       {viewMode === 'live' ? (
         <div className="flex-1 w-full h-full bg-transparent overflow-hidden">
-          {OBSERVATORY_URL ? (
-            <iframe 
-              src={OBSERVATORY_URL} 
-              className="w-full h-full border-none"
-              title="Synapse Observatory Live"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-black/50 dark:text-white/50 bg-black/5">
-              <Activity className="w-12 h-12 mb-4 opacity-50" />
-              <h3 className="text-xl font-medium text-black dark:text-white mb-2">Live Swarm UI Offline</h3>
-              <p className="max-w-md text-center">
-                The standalone Live Swarm client is not deployed in this environment. 
-                Switch to <strong>Agent Flow</strong> view to see the architecture diagram.
-              </p>
-            </div>
-          )}
+          <iframe 
+            src="http://localhost:5175" 
+            className="w-full h-full border-none"
+            title="Synapse Observatory Live"
+          />
         </div>
       ) : (
         <div className={`flex-1 relative ${styles.canvas}`}>

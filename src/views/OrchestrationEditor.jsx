@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ENGINE_URL } from '../utils/constants';
 
 export default function OrchestrationEditor() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -8,7 +7,7 @@ export default function OrchestrationEditor() {
     <div className="w-full h-full relative bg-transparent text-foreground flex flex-col overflow-hidden">
       <div className="flex-1 w-full h-full relative z-10 bg-transparent">
         <iframe 
-          src={ENGINE_URL}
+          src="http://localhost:8000"
           width="100%" 
           height="100%"
           frameBorder="0"
