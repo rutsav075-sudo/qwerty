@@ -190,8 +190,9 @@ const GEMINI_PRICING = {
 };
 
 class AIAgentOrchestrator {
-  constructor(io) {
+  constructor(io, scorer) {
     this.io = io;
+    this.scorer = scorer || null; // HallucinationScorer instance
     this.genAI = null;
     this.model = null;
     this.isRunning = false;
@@ -257,6 +258,42 @@ class AIAgentOrchestrator {
         (completionTokens / 1_000_000) * GEMINI_PRICING.completionPer1M
       );
 
+      // ── RUN REAL 3-TIER SCORING ──
+      let hrsResult = null;
+      if (this.scorer) {
+        // Run Consensus Variance Check (Tier 3)
+        const consensusVerdict = await this.runConsensusCheck(fullPrompt, text, agentId);
+        
+        // Pass the result to the Verifier (Tier 3)
+        this.scorer.verifier.receiveVerdict('demo-sandbox-token', {
+          agentId,
+          verdict: consensusVerdict.pass ? 'PASS' : 'FAIL',
+          confidence: consensusVerdict.confidence,
+          category: consensusVerdict.pass ? 'nominal' : 'consensus_variance',
+          reason: consensusVerdict.reason
+        });
+
+        // Run full 3-Tier scoring (T1 + T2 + T3)
+        hrsResult = this.scorer.score(agentId, text, {
+          latencyMs,
+          costUSD,
+          confidence: 0.95, // Gemini doesn't expose logprobs yet, mock high base confidence
+          tokenCount: totalTokens,
+        });
+
+        // Emit real-time score to clients
+        this.io.emit('hallucination:score', {
+          agentId,
+          score: hrsResult.score,
+          breakdown: hrsResult.breakdown,
+          tiersActive: hrsResult.tiersActive
+        });
+
+        if (hrsResult.score >= this.scorer.CRITICAL_THRESHOLD) {
+          throw new Error(`Auto-Pause: Agent ${agentId} exceeded safe hallucination threshold (${Math.round(hrsResult.score * 100)}%). Trigger: ${consensusVerdict.reason || 'Telemetry Anomaly'}`);
+        }
+      }
+
       // Check if the agent's response indicates need for human approval
       const requiresApproval = text.toLowerCase().includes('flag') && text.toLowerCase().includes('approval') ||
                                text.toLowerCase().includes('human approval') ||
@@ -274,6 +311,7 @@ class AIAgentOrchestrator {
         requiresApproval,
         timestamp: new Date().toISOString(),
         model: 'gemini-1.5-flash',
+        hrs: hrsResult
       };
     } catch (error) {
       const latencyMs = Date.now() - startTime;
@@ -385,6 +423,56 @@ class AIAgentOrchestrator {
 
       // Emit agent idle
       this.io.emit('live:agent-status', { agentId, status: 'idle' });
+
+      // ── Run through HallucinationScorer (3-Tier) ──
+      let hrsResult = null;
+      if (this.scorer) {
+        hrsResult = this.scorer.score(agentId, result.response, {
+          latencyMs: result.latencyMs,
+          costUSD: result.costUSD,
+          confidence: result.error ? 0.1 : 0.9,
+          tokenCount: result.tokens.total,
+        });
+
+        // Emit HRS to frontend
+        this.io.emit('live:activity', {
+          id: Date.now() + Math.random(),
+          agentId,
+          agent: AGENT_DEFINITIONS[agentId],
+          message: `🛡️ HRS: ${hrsResult.hrs} (${hrsResult.level}) | Tiers: ${hrsResult.activeTiers.join('+')} | Accuracy: ${hrsResult.accuracy}`,
+          type: hrsResult.level === 'critical' ? 'warning' : 'info',
+          timestamp: new Date().toISOString(),
+          isLive: true,
+          hrs: hrsResult,
+        });
+
+        // If HRS triggers auto-pause, halt the chain
+        if (hrsResult.shouldPause) {
+          this.io.emit('alert:hallucination', {
+            agentId,
+            agentName: AGENT_DEFINITIONS[agentId].name,
+            message: `LIVE AI: HRS ${hrsResult.hrs} exceeded threshold. Agent chain halted to prevent downstream corruption.`,
+            confidence: 1 - hrsResult.hrs,
+            hrs: hrsResult,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Break the chain — don't hand corrupted output to next agent
+          this.io.emit('live:scenario-complete', {
+            scenarioId,
+            title: scenario.title + ' (HALTED)',
+            totalLatency: Date.now() - totalStartTime,
+            totalCost: cumulativeCost,
+            totalTokens: cumulativeTokens,
+            agentsUsed: i + 1,
+            halted: true,
+            haltReason: `Agent ${agentId} HRS: ${hrsResult.hrs}`,
+            timestamp: new Date().toISOString(),
+          });
+          this.isRunning = false;
+          return { scenarioId, totalLatency: Date.now() - totalStartTime, totalCost: cumulativeCost, totalTokens: cumulativeTokens, agentsUsed: i + 1, halted: true };
+        }
+      }
 
       // Emit handoff to next agent
       if (i < scenario.agentChain.length - 1) {
@@ -550,6 +638,50 @@ Scenario: "${userPrompt}"`;
 
       this.io.emit('live:demo-step', { step: i, status: 'completed', output: result.response });
       this.io.emit('live:agent-status', { agentId, status: 'idle' });
+
+      // ── Run through HallucinationScorer (3-Tier) ──
+      if (this.scorer) {
+        const hrsResult = this.scorer.score(agentId, result.response, {
+          latencyMs: result.latencyMs,
+          costUSD: result.costUSD,
+          confidence: result.error ? 0.1 : 0.9,
+          tokenCount: result.tokens.total,
+        });
+
+        this.io.emit('live:activity', {
+          id: Date.now() + Math.random(),
+          agentId,
+          agent: AGENT_DEFINITIONS[agentId],
+          message: `🛡️ HRS: ${hrsResult.hrs} (${hrsResult.level}) | Tiers: ${hrsResult.activeTiers.join('+')} | Accuracy: ${hrsResult.accuracy}`,
+          type: hrsResult.level === 'critical' ? 'warning' : 'info',
+          timestamp: new Date().toISOString(),
+          isLive: true,
+          hrs: hrsResult,
+        });
+
+        if (hrsResult.shouldPause) {
+          this.io.emit('alert:hallucination', {
+            agentId,
+            agentName: AGENT_DEFINITIONS[agentId].name,
+            message: `CUSTOM AI: HRS ${hrsResult.hrs} exceeded threshold. Agent chain halted.`,
+            confidence: 1 - hrsResult.hrs,
+            hrs: hrsResult,
+            timestamp: new Date().toISOString(),
+          });
+          this.io.emit('live:scenario-complete', {
+            scenarioId: 'custom',
+            title: 'Custom Scenario (HALTED)',
+            totalLatency: Date.now() - totalStartTime,
+            totalCost: cumulativeCost,
+            totalTokens: cumulativeTokens,
+            agentsUsed: i + 1,
+            halted: true,
+            timestamp: new Date().toISOString(),
+          });
+          this.isRunning = false;
+          return { totalLatency: Date.now() - totalStartTime, totalCost: cumulativeCost, totalTokens: cumulativeTokens, halted: true };
+        }
+      }
 
       if (i < agentChain.length - 1) {
         const nextAgentId = agentChain[i + 1];
