@@ -41,6 +41,21 @@ function RequireAuth({ children }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (!session.user.emailVerified) {
+    return (
+      <div className="flex flex-col h-screen w-screen items-center justify-center bg-white text-black text-center p-8 font-sans">
+        <h1 className="text-2xl font-display font-bold mb-4">Verification Required</h1>
+        <p className="mb-8 text-black/70 max-w-md">We've sent a verification link to your email address. Please verify your email and refresh this page to access the Synapse OS dashboard.</p>
+        <button 
+          onClick={() => { window.location.reload(); }} 
+          className="px-6 py-2 bg-black text-white text-sm font-medium hover:bg-black/80 transition-colors"
+        >
+          I have verified my email
+        </button>
+      </div>
+    );
+  }
+
   return children;
 }
 
