@@ -83,8 +83,8 @@ export default function CaseStudiesPage() {
                   </div>
                 </div>
                 <div className="space-y-8">
-                  <div className="bg-primary/5 p-6 rounded-xl border border-primary/20">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-primary mb-3">Synapse OS Intervention</h4>
+                  <div className="bg-secondary/30 p-6 rounded-xl border border-border/50">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary mb-3">Synapse OS Intervention</h4>
                     <p className="text-text-primary font-medium leading-relaxed font-sans text-sm md:text-base">{useCase.intervention}</p>
                   </div>
                   <div className="bg-secondary/30 p-6 rounded-xl border border-border/50">
@@ -102,21 +102,19 @@ export default function CaseStudiesPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center bg-text-primary text-white p-12 md:p-16 rounded-2xl relative overflow-hidden shadow-lg"
+          className="bg-white border border-border border-dashed p-10 md:p-16 rounded-2xl text-center max-w-3xl mx-auto shadow-sm"
         >
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-serif font-normal mb-4">Ready to secure your agent swarms?</h2>
-            <p className="text-white/70 mb-8 max-w-xl mx-auto leading-relaxed text-base md:text-lg">
-              We're currently onboarding select design partners. Want to be our first official case study? Get in touch.
-            </p>
-            <Link 
-              to="/contact?message=I'd%20like%20to%20discuss%20a%20case%20study."
-              className="bg-white text-text-primary hover:bg-white/90 transition-colors text-sm font-medium rounded-full px-8 py-3 inline-flex items-center justify-center gap-2"
-            >
-              Contact Sales
-              <ArrowRight size={16} />
-            </Link>
-          </div>
+          <h2 className="text-3xl md:text-4xl font-serif font-normal text-text-primary mb-4">Ready to secure your agent swarms?</h2>
+          <p className="text-base md:text-lg text-text-tertiary leading-relaxed font-sans max-w-xl mx-auto mb-8">
+            We're currently onboarding select design partners. Want to be our first official case study? Get in touch.
+          </p>
+          <Link 
+            to="/contact?message=I'd%20like%20to%20discuss%20a%20case%20study."
+            className="bg-text-primary text-white hover:bg-text-secondary transition-colors text-sm font-medium rounded-full px-8 py-3 inline-flex items-center justify-center gap-2"
+          >
+            Contact Sales
+            <ArrowRight size={16} />
+          </Link>
         </motion.div>
       </main>
       <Footer />
