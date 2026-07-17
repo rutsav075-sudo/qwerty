@@ -9,6 +9,7 @@ export function useSwarmSocket() {
   const [events, setEvents] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [tokenHistory, setTokenHistory] = useState([]);
+  const [hrsScores, setHrsScores] = useState({});  // Hallucination Risk Scores per agent
   const [systemStatus, setSystemStatus] = useState({
     totalCost: 0,
     totalTokens: 0,
@@ -158,6 +159,14 @@ export function useSwarmSocket() {
       setSystemStatus(data);
     });
 
+    // ── Hallucination Risk Scores (3-Tier Detection) ──
+    socket.on('hallucination:score', (data) => {
+      setHrsScores(prev => ({
+        ...prev,
+        [data.agentId]: data,
+      }));
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -228,6 +237,7 @@ export function useSwarmSocket() {
     events,
     alerts,
     tokenHistory,
+    hrsScores,
     systemStatus,
     isConnected,
     killAgent,

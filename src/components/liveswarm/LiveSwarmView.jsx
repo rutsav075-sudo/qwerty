@@ -11,6 +11,7 @@ import {
   Brain, Activity, AlertTriangle, DollarSign, Wifi, WifiOff, Zap,
   Cpu, Clock, Crosshair, RotateCcw, Radio, BarChart3,
   StopCircle, ShieldAlert, Wrench, PlayCircle, Skull, X, TrendingUp,
+  Shield, Eye,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -136,7 +137,7 @@ function CostTracker({ totalCost, costColor, burnRatePerMin, systemHealth }) {
 }
 
 // ── Agent Card ──
-function AgentCard({ agent, onKill, onRestart }) {
+function AgentCard({ agent, onKill, onRestart, hrs }) {
   const [hovered, setHovered] = useState(false);
 
   if (!agent) {
@@ -198,6 +199,51 @@ function AgentCard({ agent, onKill, onRestart }) {
       <div className="swarm-confidence-bar mb-3">
         <div className="swarm-confidence-fill" style={{ width: `${(agent.confidenceScore || 0) * 100}%`, backgroundColor: confidenceColor }} />
       </div>
+
+      {/* ── HRS Gauge (3-Tier Hallucination Detection) ── */}
+      {hrs && (
+        <div className="mb-3 bg-black/[0.03] border border-black/10 rounded-md p-2.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <Shield size={10} className={hrs.level === 'critical' ? 'text-red-500' : hrs.level === 'high' ? 'text-orange-500' : hrs.level === 'warning' ? 'text-amber-500' : 'text-emerald-500'} />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">HRS</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {hrs.activeTiers.map(t => (
+                <span key={t} className="text-[8px] font-bold font-mono px-1 py-0.5 rounded border border-black/10 bg-black/5 text-gray-600">{t}</span>
+              ))}
+              <span className={`text-[10px] font-bold font-mono ${
+                hrs.level === 'critical' ? 'text-red-600' : hrs.level === 'high' ? 'text-orange-600' : hrs.level === 'warning' ? 'text-amber-600' : 'text-emerald-600'
+              }`}>{(hrs.hrs * 100).toFixed(0)}%</span>
+            </div>
+          </div>
+          <div className="w-full h-1.5 bg-black/10 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500" style={{
+              width: `${Math.min(100, hrs.hrs * 100)}%`,
+              background: hrs.level === 'critical' ? 'linear-gradient(90deg, #ef4444, #dc2626)'
+                : hrs.level === 'high' ? 'linear-gradient(90deg, #f97316, #ea580c)'
+                : hrs.level === 'warning' ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+                : 'linear-gradient(90deg, #10b981, #059669)',
+            }} />
+          </div>
+          {hrs.level !== 'nominal' && hrs.tiers?.t1?.breakdown && (
+            <div className="mt-1.5 space-y-0.5">
+              {Object.entries(hrs.tiers.t1.breakdown).slice(0, 3).map(([key, val]) => (
+                val.label !== 'NORMAL' && val.label !== 'STABLE' && (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono text-gray-500 capitalize">{key}</span>
+                    <span className={`text-[9px] font-bold font-mono ${
+                      val.label === 'CRITICAL' || val.label === 'RUNAWAY' || val.label === 'COLLAPSE' || val.label === 'LOOP DETECTED' ? 'text-red-500'
+                      : val.label === 'HIGH' || val.label === 'ELEVATED' || val.label === 'DROPPING' ? 'text-amber-500'
+                      : 'text-gray-500'
+                    }`}>{val.label}</span>
+                  </div>
+                )
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {agent.reasoningChain && agent.reasoningChain.length > 0 && (
         <div className="space-y-1">
           {agent.reasoningChain.slice(-3).map((step, i) => (
@@ -520,12 +566,89 @@ function HallucinationAlert({ alerts, agents, systemStatus, killAgent, killAll, 
 }
 
 
+// ── HRS Detection Panel ──
+function HrsDetectionPanel({ hrsScores, agents }) {
+  const scores = Object.values(hrsScores);
+  if (scores.length === 0) return null;
+
+  const maxHrs = scores.reduce((max, s) => s.hrs > max.hrs ? s : max, scores[0]);
+  const activeTiers = maxHrs?.activeTiers || ['T1'];
+  const anyWarning = scores.some(s => s.level !== 'nominal');
+
+  return (
+    <div className={`swarm-glass-card p-5 rounded-lg transition-all duration-300 ${anyWarning ? 'border-amber-500/30' : ''}`}>
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-black/10">
+        <div className="flex items-center gap-2">
+          <Shield size={16} className={anyWarning ? 'text-amber-600' : 'text-emerald-600'} />
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Hallucination Detection Engine</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {activeTiers.map(t => (
+            <span key={t} className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded border ${
+              t === 'T3' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600'
+              : t === 'T2' ? 'border-blue-500/30 bg-blue-500/10 text-blue-600'
+              : 'border-gray-300 bg-gray-100 text-gray-600'
+            }`}>
+              {t === 'T1' ? 'T1: Math' : t === 'T2' ? 'T2: Contracts' : 'T3: Verifier'}
+            </span>
+          ))}
+          <span className="text-[10px] font-mono text-gray-500">
+            Accuracy: {maxHrs?.accuracy || '~75-85%'}
+          </span>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-3">
+        {AGENT_ORDER.map(id => {
+          const hrs = hrsScores[id];
+          const agent = agents[id];
+          if (!hrs || !agent) return (
+            <div key={id} className="bg-black/[0.03] border border-black/10 rounded-md p-3">
+              <div className="text-[10px] text-gray-400 font-mono">Collecting baseline...</div>
+            </div>
+          );
+          return (
+            <div key={id} className={`border rounded-md p-3 transition-all duration-300 ${
+              hrs.level === 'critical' ? 'bg-red-50/80 border-red-300'
+              : hrs.level === 'high' ? 'bg-orange-50/50 border-orange-300'
+              : hrs.level === 'warning' ? 'bg-amber-50/50 border-amber-300'
+              : 'bg-black/[0.03] border-black/10'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-gray-900">{AGENT_NAMES[id]}</span>
+                <span className={`text-xs font-bold font-mono ${
+                  hrs.level === 'critical' ? 'text-red-600' : hrs.level === 'high' ? 'text-orange-600' : hrs.level === 'warning' ? 'text-amber-600' : 'text-emerald-600'
+                }`}>{(hrs.hrs * 100).toFixed(0)}%</span>
+              </div>
+              <div className="w-full h-2 bg-black/10 rounded-full overflow-hidden mb-2">
+                <div className="h-full rounded-full transition-all duration-700" style={{
+                  width: `${Math.min(100, hrs.hrs * 100)}%`,
+                  background: hrs.level === 'critical' ? '#ef4444'
+                    : hrs.level === 'high' ? '#f97316'
+                    : hrs.level === 'warning' ? '#f59e0b'
+                    : '#10b981',
+                }} />
+              </div>
+              <div className="text-[9px] font-mono text-gray-500 uppercase font-bold tracking-wider">
+                {hrs.level === 'critical' ? '⚠ AUTO-PAUSE' : hrs.level === 'high' ? '⚠ HIGH RISK' : hrs.level === 'warning' ? '△ ELEVATED' : '✓ NOMINAL'}
+              </div>
+              {hrs.shouldPause && (
+                <div className="mt-1 text-[9px] font-mono text-red-500 font-bold animate-pulse">AGENT PAUSED BY HRS</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 // ═══════════════════════════════════════════════════════════
 // MAIN LIVE SWARM VIEW
 // ═══════════════════════════════════════════════════════════
 export default function LiveSwarmView() {
   const {
-    agents, events, alerts, tokenHistory, systemStatus, isConnected,
+    agents, events, alerts, tokenHistory, hrsScores, systemStatus, isConnected,
     killAgent, killAll, restartAgent, restartAll, resumeAgent, triggerRogue, dismissAlert, clearAlerts,
   } = useSwarmSocket();
 
@@ -556,8 +679,11 @@ export default function LiveSwarmView() {
 
         {/* Agent Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {AGENT_ORDER.map(id => (<AgentCard key={id} agent={agents[id]} onKill={() => killAgent(id)} onRestart={() => restartAgent(id)} />))}
+          {AGENT_ORDER.map(id => (<AgentCard key={id} agent={agents[id]} onKill={() => killAgent(id)} onRestart={() => restartAgent(id)} hrs={hrsScores[id]} />))}
         </div>
+
+        {/* HRS Detection Panel */}
+        <HrsDetectionPanel hrsScores={hrsScores} agents={agents} />
 
         {/* Swarm Topology */}
         <SwarmTopology agents={agents} selectedAgent={selectedAgent} setSelectedAgent={setSelectedAgent} />
