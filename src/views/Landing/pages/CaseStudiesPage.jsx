@@ -1,46 +1,13 @@
 import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import TopNav from '../components/TopNav';
 import Footer from '../components/Footer';
-import { ArrowRight, ShieldAlert, FileSearch, Banknote } from 'lucide-react';
 
 export default function CaseStudiesPage() {
-  useEffect(() => { window.scrollTo(0, 0); }, []);
-
-  const cases = [
-    {
-      id: 'procurement',
-      icon: <FileSearch className="text-text-primary" size={24} />,
-      title: "Procurement Agent Swarm",
-      scenario: "An autonomous agent swarm is tasked with monitoring inventory levels and automatically generating purchase orders with suppliers when stock runs low.",
-      problem: "A logic error in the inventory API causes the agent to misread the current stock level, initiating an order for 100x the normal quantity of an expensive component.",
-      intervention: "Synapse OS detects the anomalous order volume through its transaction boundary abstraction. The kill-switch is automatically engaged, halting the swarm's external API calls and routing the intended transaction to a human-in-the-loop approval queue.",
-      outcome: "The enterprise avoids a multi-million dollar errant purchase. The operations team reviews the trace logs in the Observatory, patches the agent logic, and resumes normal operation."
-    },
-    {
-      id: 'customer-support',
-      icon: <ShieldAlert className="text-text-primary" size={24} />,
-      title: "Customer Support Automation",
-      scenario: "A fleet of LLM-powered support agents interacts directly with customers, querying a vectorized internal knowledge base to resolve technical issues.",
-      problem: "A prompt injection attack causes an agent to attempt to query the knowledge base for sensitive PII (Personally Identifiable Information) belonging to other customers.",
-      intervention: "Synapse OS's neural rosters and tenant sync layer intercept the query before it hits the database. The system identifies the cross-tenant boundary violation and instantly quarantines the specific agent instance without taking down the entire support fleet.",
-      outcome: "Data exfiltration is prevented entirely. Security teams are alerted with a complete replay of the conversation and the specific prompt injection technique used, allowing them to fortify the prompt engineering."
-    },
-    {
-      id: 'financial-reconciliation',
-      icon: <Banknote className="text-text-primary" size={24} />,
-      title: "Financial Reconciliation",
-      scenario: "Agent swarms parse thousands of unstructured invoices daily, cross-referencing them with internal ledgers and issuing automated payments.",
-      problem: "A sophisticated vendor submits a subtly modified invoice with altered payment details that bypasses standard rule-based checks.",
-      intervention: "Synapse OS employs behavioral anomaly detection on the agent's typical output patterns. The system flags the deviation in the target account destination and pauses the execution, demanding cryptographic approval from a senior finance officer.",
-      outcome: "The fraudulent payment is intercepted. The finance officer reviews the step-by-step reasoning trace of the agent to understand why it approved the invoice, leading to improved agent training data."
-    }
-  ];
-
+  useEffect(() => window.scrollTo(0, 0), []);
   return (
-    <div className="min-h-screen bg-background font-sans text-text-primary selection:bg-primary/20 selection:text-primary flex flex-col">
+    <div className="min-h-screen bg-background font-sans text-text-primary">
       <TopNav />
+
       <main className="flex-grow pt-32 pb-24 md:pt-48 md:pb-32 container mx-auto px-6 max-w-5xl">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -116,6 +83,7 @@ export default function CaseStudiesPage() {
             <ArrowRight size={16} />
           </Link>
         </motion.div>
+
       </main>
       <Footer />
     </div>

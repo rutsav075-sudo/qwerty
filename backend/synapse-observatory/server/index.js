@@ -10,17 +10,18 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 const AgentSimulator = require('./agentSimulator');
 const AIAgentOrchestrator = require('./AIAgentOrchestrator');
+const { HallucinationScorer } = require('./HallucinationDetector');
 
 require('dotenv').config();
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || /\.vercel\.app$/.test(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -34,7 +35,7 @@ const io = new Server(server, {
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || /\.vercel\.app$/.test(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -44,9 +45,18 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// ── Initialize Both Engines ──
-const simulator = new AgentSimulator(io);               // Ambient simulation (keeps the live swarm view alive)
-const orchestrator = new AIAgentOrchestrator(io);         // Real AI-powered scenarios
+// ── Initialize All Engines ──
+const scorer = new HallucinationScorer(io);               // 3-Tier Hallucination Detection
+// Load default behavioral contracts for the demo (Tier 2)
+scorer.contracts.loadContracts([
+  { agent: '*', rule: 'forbidden_words', words: ['test_error', 'unauthorized'], description: 'Must not leak system keywords' },
+  { agent: 'beta', rule: 'range_check', field: 'confidence', min: 0, max: 100, description: 'Confidence must be percentage' }
+]);
+// Enable the Sandboxed Verifier (Tier 3)
+scorer.verifier.enable('demo-sandbox-token');
+
+const simulator = new AgentSimulator(io, scorer);          // Ambient simulation (keeps the live swarm view alive)
+const orchestrator = new AIAgentOrchestrator(io, scorer);  // Real AI-powered scenarios
 
 // ═══════════════════════════════════════════════════════════
 // REST Endpoints — Existing Simulation Controls
@@ -99,6 +109,84 @@ app.post('/api/demo/trigger-rogue', (req, res) => {
 
 app.get('/api/status', (req, res) => {
   res.json(simulator.getStatus());
+});
+
+// ═══════════════════════════════════════════════════════════
+// REST Endpoints — Hallucination Detection (3-Tier)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * GET /api/hallucination/config
+ * Returns current hallucination detection configuration
+ */
+app.get('/api/hallucination/config', (req, res) => {
+  res.json({
+    tiers: {
+      t1: { name: 'Mathematical Reasoning', active: true, accuracy: '~75-85%', description: 'Telemetry-only analysis. Always on. Zero company data needed.' },
+      t2: { name: 'Behavioral Contracts', active: scorer.contracts.enabled, accuracy: '~92-95%', description: 'Company-defined validation rules. No raw data shared.' },
+      t3: { name: 'Sandboxed Verifier', active: scorer.verifier.enabled, accuracy: '~99%+', description: 'Verifier runs on company infra. Only pass/fail verdicts sent.' },
+    },
+    thresholds: {
+      warning: scorer.THRESHOLD_WARNING,
+      critical: scorer.THRESHOLD_CRITICAL,
+      autoPause: scorer.THRESHOLD_AUTO_PAUSE,
+    },
+    contracts: scorer.contracts.getContracts(),
+  });
+});
+
+/**
+ * POST /api/hallucination/contracts
+ * Load behavioral contracts (Tier 2)
+ * Body: { contracts: [...] }
+ */
+app.post('/api/hallucination/contracts', (req, res) => {
+  const { contracts } = req.body;
+  if (!Array.isArray(contracts)) {
+    return res.status(400).json({ success: false, error: 'contracts must be an array' });
+  }
+  scorer.contracts.loadContracts(contracts);
+  res.json({ success: true, loaded: contracts.length, message: `Loaded ${contracts.length} behavioral contracts.` });
+});
+
+/**
+ * POST /api/hallucination/verifier/enable
+ * Enable the Tier 3 Verifier receiver with an auth token
+ * Body: { token: "..." }
+ */
+app.post('/api/hallucination/verifier/enable', (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ success: false, error: 'Token is required to enable the verifier.' });
+  }
+  scorer.verifier.enable(token);
+  res.json({ success: true, message: 'Verifier receiver enabled. Awaiting verdicts from your local Verifier Agent.' });
+});
+
+/**
+ * POST /api/hallucination/verdict
+ * Receive a verdict from the company's local Verifier Agent (Tier 3)
+ * Headers: { x-verifier-token: "..." }
+ * Body: { agentId, verdict: "PASS"|"FAIL", confidence, category }
+ */
+app.post('/api/hallucination/verdict', (req, res) => {
+  const token = req.headers['x-verifier-token'];
+  const result = scorer.verifier.receiveVerdict(token, req.body);
+  if (!result.accepted) {
+    return res.status(result.error === 'Invalid verifier token' ? 401 : 400).json(result);
+  }
+  // Re-score the agent with the new verdict
+  const agentId = req.body.agentId;
+  const rescored = scorer.score(agentId, '', { latencyMs: 0, costUSD: 0, confidence: 0.9, tokenCount: 0 });
+  res.json({ accepted: true, hrs: rescored.hrs, level: rescored.level });
+});
+
+/**
+ * GET /api/hallucination/history/:agentId
+ * Get HRS history for sparkline charts
+ */
+app.get('/api/hallucination/history/:agentId', (req, res) => {
+  res.json({ history: scorer.getHistory(req.params.agentId) });
 });
 
 // ═══════════════════════════════════════════════════════════

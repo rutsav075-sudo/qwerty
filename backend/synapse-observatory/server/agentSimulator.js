@@ -193,8 +193,9 @@ const COMM_MESSAGES = {
 };
 
 class AgentSimulator {
-  constructor(io) {
+  constructor(io, scorer) {
     this.io = io;
+    this.scorer = scorer || null; // HallucinationScorer instance
     this.agents = {};
     this.timers = {};
     this.commTimers = {};
@@ -329,6 +330,38 @@ class AgentSimulator {
         timestamp: agent.timestamp,
         pauseReason: agent.pauseReason,
       });
+
+      // ── Run through HallucinationScorer (3-Tier) ──
+      if (this.scorer) {
+        // Mock external verifier response (Tier 3) so it appears in the demo
+        this.scorer.verifier.receiveVerdict('demo-sandbox-token', {
+          agentId,
+          verdict: agent.isRogue || agent.isCascading ? 'FAIL' : 'PASS',
+          confidence: agent.isRogue ? 0.98 : 0.95,
+          category: agent.isRogue ? 'factual_error' : 'nominal'
+        });
+
+        const hrsResult = this.scorer.score(agentId, agent.currentTask, {
+          latencyMs: agent.latencyMs,
+          costUSD: agent.costUSD,
+          confidence: agent.confidenceScore,
+          tokenCount: total,
+        });
+
+        // If HRS triggers auto-pause and agent isn't already being managed
+        if (hrsResult.shouldPause && !agent.isRogue && !agent.isCascading && agent.status !== 'paused' && agent.status !== 'killed') {
+          this.pauseAgent(agentId, `HRS Auto-Pause: Score ${hrsResult.hrs} (${hrsResult.level})`);
+          this.io.emit('alert:hallucination', {
+            agentId,
+            agentName: agent.agentName,
+            message: `Hallucination Risk Score ${hrsResult.hrs} exceeded auto-pause threshold. Detection tiers: ${hrsResult.activeTiers.join(', ')}. Accuracy: ${hrsResult.accuracy}.`,
+            confidence: 1 - hrsResult.hrs,
+            hrs: hrsResult,
+            timestamp: new Date().toISOString(),
+          });
+          this.alertCount++;
+        }
+      }
 
       const delay = agent.isRogue ? 400 + Math.random() * 300 : 1000 + Math.random() * 2000;
       this.timers[agentId] = setTimeout(emit, delay);
@@ -650,6 +683,7 @@ class AgentSimulator {
 
     setTimeout(() => this.start(), 500);
     console.log('[SIMULATOR] FULL SYSTEM RESTART — New rogue timer started');
+    if (this.scorer) this.scorer.resetAll();
   }
 
   stopAll() {

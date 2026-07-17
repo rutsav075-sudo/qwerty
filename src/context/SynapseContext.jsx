@@ -3,19 +3,12 @@ import { io as socketIO } from 'socket.io-client';
 import AgentSimulator from '../engine/AgentSimulator';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { BACKEND_URL } from '../utils/constants';
 
 const SynapseContext = createContext(null);
 
 // ── Initial lease data (Fallback) ──
-const INITIAL_LEASES = [
-  { id: '1', company: 'Pease Airlines', property: 'Peace Hangers', startDate: '11/7/16', endDate: '12/10/13', units: '238', moveIn: 'Completed', moveOut: 'Pending', status: 'past' },
-  { id: '2', company: 'Solutions LLC', property: 'Solutions HQ', startDate: '3/4/16', endDate: '8/30/14', units: '238', moveIn: 'Completed', moveOut: 'Completed', status: 'past' },
-  { id: '3', company: 'Myrd Properties', property: '223 Plaza Lane', startDate: '1/28/17', endDate: '2/11/12', units: '238', moveIn: 'Completed', moveOut: 'Incomplete', status: 'past' },
-  { id: '4', company: 'Open Property Inc', property: 'Paramount Plaza', startDate: '5/27/15', endDate: '8/15/17', units: '238', moveIn: 'Completed', moveOut: 'Completed', status: 'past' },
-  { id: '5', company: 'TechCorp Solutions', property: 'Innovation Hub', startDate: '1/15/24', endDate: '1/15/26', units: '412', moveIn: 'Completed', moveOut: 'Pending', status: 'current' },
-  { id: '6', company: 'Green Energy Ltd', property: 'Solar Complex', startDate: '3/1/24', endDate: '3/1/27', units: '156', moveIn: 'Completed', moveOut: 'Pending', status: 'current' },
-  { id: '7', company: 'Draft Corp', property: 'New Office', startDate: '', endDate: '', units: '100', moveIn: 'Pending', moveOut: 'Pending', status: 'draft' },
-];
+const INITIAL_LEASES = [];
 
 // ── Initial node catalog for orchestration ──
 const NODE_CATALOG = {
@@ -144,7 +137,7 @@ export function SynapseProvider({ children }) {
   // ── Load Data from Supabase (or fallback) ──
   useEffect(() => {
     async function loadData() {
-      if (user) {
+      if (user && supabase) {
         try {
           const [{ data: leaseData, error: lErr }, { data: productData, error: pErr }] = await Promise.all([
             supabase.from('leases').select('*'),
@@ -153,10 +146,7 @@ export function SynapseProvider({ children }) {
 
           if (lErr) throw lErr;
           setLeases(leaseData && leaseData.length > 0 ? leaseData : INITIAL_LEASES);
-          setProducts(productData && productData.length > 0 ? productData : [
-            { id: '1', name: 'Premium Leather Jacket', price: 199.99, stock: 15, sales: 120 },
-            { id: '2', name: 'Basic T-Shirt', price: 29.99, stock: 50, sales: 450 }
-          ]);
+          setProducts(productData && productData.length > 0 ? productData : []);
           setDbConnected(true);
         } catch (error) {
           console.warn("Supabase fetch failed, falling back to local storage.", error);
@@ -173,10 +163,7 @@ export function SynapseProvider({ children }) {
       setLeases(parsedLeases && parsedLeases.length > 0 ? parsedLeases : INITIAL_LEASES);
       const savedProducts = localStorage.getItem('synapse-products');
       const parsedProducts = savedProducts ? JSON.parse(savedProducts) : null;
-      setProducts(parsedProducts && parsedProducts.length > 0 ? parsedProducts : [
-        { id: '1', name: 'Premium Leather Jacket', price: 199.99, stock: 15, sales: 120 },
-        { id: '2', name: 'Basic T-Shirt', price: 29.99, stock: 50, sales: 450 }
-      ]);
+      setProducts(parsedProducts && parsedProducts.length > 0 ? parsedProducts : []);
       const savedPerms = localStorage.getItem('synapse-permissions');
       setPermissions(savedPerms ? JSON.parse(savedPerms) : { canCreateTickets: true, canManageLeases: false });
     }
@@ -251,7 +238,7 @@ export function SynapseProvider({ children }) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    const socket = socketIO('http://localhost:4000', {
+    const socket = socketIO(BACKEND_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
@@ -382,7 +369,7 @@ export function SynapseProvider({ children }) {
   // LIVE AI Scenario Runner (NEW — real Gemini calls)
   // ═══════════════════════════════════════════════════════════
   const runLiveScenario = useCallback(async (scenarioId) => {
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = localStorage.getItem('geminiApiKey') || import.meta.env.VITE_GEMINI_API_KEY;
     // If not in localStorage, we will rely on backend's .env
 
     if (scenarioRunning) {
@@ -404,7 +391,7 @@ export function SynapseProvider({ children }) {
       // through a dedicated EventSource or WebSocket connection
       
       // For simplicity and reliability: We use fetch + poll Socket.IO events
-      const response = await fetch('http://localhost:4000/api/ai/scenario', {
+      const response = await fetch(`${BACKEND_URL}/api/ai/scenario`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenarioId, apiKey }),
@@ -438,7 +425,7 @@ export function SynapseProvider({ children }) {
 
   // ── Run Custom Prompt (NEW — the killer feature) ──
   const runCustomPrompt = useCallback(async (prompt) => {
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = localStorage.getItem('geminiApiKey') || import.meta.env.VITE_GEMINI_API_KEY;
     // If not in localStorage, we will rely on backend's .env
 
     if (scenarioRunning) {
@@ -454,7 +441,7 @@ export function SynapseProvider({ children }) {
     addToast('info', '🧠 Custom AI Scenario', 'Agents are analyzing your prompt...');
 
     try {
-      const response = await fetch('http://localhost:4000/api/ai/custom', {
+      const response = await fetch(`${BACKEND_URL}/api/ai/custom`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, apiKey }),
@@ -500,7 +487,7 @@ export function SynapseProvider({ children }) {
 
   // ── Lease CRUD ──
   const addLease = useCallback(async (lease) => {
-    if (dbConnected && user) {
+    if (dbConnected && supabase && user) {
       const { data, error } = await supabase.from('leases').insert([{ ...lease, user_id: (user.uid || user.id) }]).select();
       if (!error && data) {
         setLeases(prev => [...prev, data[0]]);
@@ -514,7 +501,7 @@ export function SynapseProvider({ children }) {
   }, [addToast, dbConnected, user]);
 
   const updateLease = useCallback(async (id, updates) => {
-    if (dbConnected) {
+    if (dbConnected && supabase) {
       const { error } = await supabase.from('leases').update(updates).eq('id', id);
       if (error) {
         addToast('error', 'Update Failed', error.message);
@@ -526,7 +513,7 @@ export function SynapseProvider({ children }) {
   }, [addToast, dbConnected]);
 
   const deleteLease = useCallback(async (id) => {
-    if (dbConnected) {
+    if (dbConnected && supabase) {
       await supabase.from('leases').delete().eq('id', id);
     }
     setLeases(prev => prev.filter(l => l.id !== id));
@@ -541,7 +528,7 @@ export function SynapseProvider({ children }) {
 
   // ── Product CRUD ──
   const addProduct = useCallback(async (product) => {
-    if (dbConnected && user) {
+    if (dbConnected && supabase && user) {
       const { data, error } = await supabase.from('products').insert([{ ...product, user_id: (user.uid || user.id) }]).select();
       if (!error && data) {
         setProducts(prev => [...prev, data[0]]);
@@ -556,7 +543,7 @@ export function SynapseProvider({ children }) {
   }, [addToast, dbConnected, user]);
 
   const deleteProduct = useCallback(async (id) => {
-    if (dbConnected) {
+    if (dbConnected && supabase) {
       await supabase.from('products').delete().eq('id', id);
     }
     setProducts(prev => prev.filter(p => p.id !== id));
