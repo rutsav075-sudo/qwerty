@@ -137,7 +137,7 @@ export function SynapseProvider({ children }) {
   // ── Load Data from Supabase (or fallback) ──
   useEffect(() => {
     async function loadData() {
-      if (user) {
+      if (user && supabase) {
         try {
           const [{ data: leaseData, error: lErr }, { data: productData, error: pErr }] = await Promise.all([
             supabase.from('leases').select('*'),
@@ -369,7 +369,7 @@ export function SynapseProvider({ children }) {
   // LIVE AI Scenario Runner (NEW — real Gemini calls)
   // ═══════════════════════════════════════════════════════════
   const runLiveScenario = useCallback(async (scenarioId) => {
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = localStorage.getItem('geminiApiKey') || import.meta.env.VITE_GEMINI_API_KEY;
     // If not in localStorage, we will rely on backend's .env
 
     if (scenarioRunning) {
@@ -425,7 +425,7 @@ export function SynapseProvider({ children }) {
 
   // ── Run Custom Prompt (NEW — the killer feature) ──
   const runCustomPrompt = useCallback(async (prompt) => {
-    const apiKey = localStorage.getItem('geminiApiKey');
+    const apiKey = localStorage.getItem('geminiApiKey') || import.meta.env.VITE_GEMINI_API_KEY;
     // If not in localStorage, we will rely on backend's .env
 
     if (scenarioRunning) {
@@ -487,7 +487,7 @@ export function SynapseProvider({ children }) {
 
   // ── Lease CRUD ──
   const addLease = useCallback(async (lease) => {
-    if (dbConnected && user) {
+    if (dbConnected && supabase && user) {
       const { data, error } = await supabase.from('leases').insert([{ ...lease, user_id: (user.uid || user.id) }]).select();
       if (!error && data) {
         setLeases(prev => [...prev, data[0]]);
@@ -501,7 +501,7 @@ export function SynapseProvider({ children }) {
   }, [addToast, dbConnected, user]);
 
   const updateLease = useCallback(async (id, updates) => {
-    if (dbConnected) {
+    if (dbConnected && supabase) {
       const { error } = await supabase.from('leases').update(updates).eq('id', id);
       if (error) {
         addToast('error', 'Update Failed', error.message);
@@ -513,7 +513,7 @@ export function SynapseProvider({ children }) {
   }, [addToast, dbConnected]);
 
   const deleteLease = useCallback(async (id) => {
-    if (dbConnected) {
+    if (dbConnected && supabase) {
       await supabase.from('leases').delete().eq('id', id);
     }
     setLeases(prev => prev.filter(l => l.id !== id));
@@ -528,7 +528,7 @@ export function SynapseProvider({ children }) {
 
   // ── Product CRUD ──
   const addProduct = useCallback(async (product) => {
-    if (dbConnected && user) {
+    if (dbConnected && supabase && user) {
       const { data, error } = await supabase.from('products').insert([{ ...product, user_id: (user.uid || user.id) }]).select();
       if (!error && data) {
         setProducts(prev => [...prev, data[0]]);
@@ -543,7 +543,7 @@ export function SynapseProvider({ children }) {
   }, [addToast, dbConnected, user]);
 
   const deleteProduct = useCallback(async (id) => {
-    if (dbConnected) {
+    if (dbConnected && supabase) {
       await supabase.from('products').delete().eq('id', id);
     }
     setProducts(prev => prev.filter(p => p.id !== id));
